@@ -195,6 +195,19 @@ describe("parseClaudeLogs", () => {
       events.flatMap((e) => (e.kind === "prompt" ? [e.text] : e.kind === "tool" ? [e.label] : [])),
     ).toEqual(["use key [redacted]", "Ran Send to [redacted]"]);
   });
+
+  it("redacts commands before shortening them", () => {
+    const { events } = parse(
+      human(1, "go"),
+      assistant(2, [
+        tool("Bash", { command: 'curl -H "Authorization: Bearer gsk_Ab12Cd34Ef56Gh78Ij90Kl12" x' }),
+      ]),
+      assistant(3, [tool("Bash", { command: "export DATABASE_URL=postgres://u:p@h/db" })]),
+    );
+    const labels = events.flatMap((e) => (e.kind === "tool" ? [e.label] : []));
+    expect(labels[0]).not.toContain("gsk_");
+    expect(labels[1]).toBe("Ran export DATABASE_URL=[redacted]");
+  });
 });
 
 describe("timestamps", () => {

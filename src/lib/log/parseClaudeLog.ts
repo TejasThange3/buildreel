@@ -74,7 +74,7 @@ export function parseClaudeLogs(files: string[]): ParsedLog {
       if ("text" in b && b.text.trim()) events.push({ kind: "reply", at });
       if (!("name" in b) || isHiddenTool(b.name)) continue;
       if (!isReadTool(b.name)) {
-        events.push({ kind: "tool", at, tool: b.name, label: redact(toolLabel(b.name, b.input)) });
+        events.push({ kind: "tool", at, tool: b.name, label: toolLabel(b.name, b.input) });
       } else if (reads) {
         reads.count++;
         reads.event.label = readLabel(reads.count);

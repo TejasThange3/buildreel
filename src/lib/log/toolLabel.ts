@@ -1,3 +1,5 @@
+import { redact } from "./redact";
+
 const EDIT_TOOLS = new Set(["Edit", "Write", "MultiEdit", "NotebookEdit"]);
 const SHELL_TOOLS = new Set(["Bash", "PowerShell"]);
 const READ_TOOLS = new Set(["Read", "Grep", "Glob"]);
@@ -9,8 +11,9 @@ export const isReadTool = (name: string) => READ_TOOLS.has(name);
 
 function stringField(input: Record<string, unknown>, key: string): string | undefined {
   const value = input[key];
-  // Captions are one line: heredocs and multi-line commands collapse to single spaces.
-  const text = typeof value === "string" ? value.replace(/\s+/g, " ").trim() : "";
+  // Redact the raw value first: truncation can cut a key below the length its pattern needs,
+  // and env lines are only recognised at the start of a line. Then collapse to one line.
+  const text = typeof value === "string" ? redact(value).replace(/\s+/g, " ").trim() : "";
   return text || undefined;
 }
 
