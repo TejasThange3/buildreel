@@ -18,6 +18,9 @@ export async function probeVideo(file: File): Promise<VideoProbe> {
       );
     }
     const durationS = await input.computeDuration();
+    if (!Number.isFinite(durationS) || durationS <= 0) {
+      throw new Error(`${file.name} has no readable length. In OBS, use File > Remux Recordings.`);
+    }
     return {
       durationS,
       width: await track.getDisplayWidth(),

@@ -11,5 +11,6 @@ export type ParsedLog = { events: BuildEvent[]; skippedLines: number };
 // One 0..1 score per ACTIVITY_BIN_S (0.5 s) of video: how much the screen changed.
 export type ActivityTrack = number[];
 
-// startedAt: epoch ms of the first frame, the same clock as BuildEvent.at.
+// startedAt: epoch ms at media time 0, the same clock as BuildEvent.at. Video times everywhere
+// are media timestamps, as the <video> element and Mediabunny report them.
 export type VideoProbe = { durationS: number; width: number; height: number; startedAt: number };
