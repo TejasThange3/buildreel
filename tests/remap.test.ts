@@ -53,3 +53,19 @@ describe("remap", () => {
     expect(times[3]).toBeCloseTo(63.999, 9);
   });
 });
+
+describe("zero-length segments", () => {
+  it("are never shown, even at the end boundary", () => {
+    const withEmpty: EDL = {
+      segments: [
+        { id: "h", step: 1, mode: "hold", srcT: 10, outDur: 2 },
+        { id: "r", step: 1, mode: "real", src: [99, 99], outDur: 0 },
+      ],
+      totalS: 2,
+    };
+    expect(remap(withEmpty, 2)).toMatchObject({ segment: { id: "h" }, srcT: 10 });
+    expect(
+      remap({ segments: [{ id: "c", mode: "card", outDur: 0 }], totalS: 0 }, 0),
+    ).toBeUndefined();
+  });
+});

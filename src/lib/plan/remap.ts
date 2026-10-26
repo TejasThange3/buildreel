@@ -18,11 +18,12 @@ function sourceTime(segment: Segment, local: number): number | undefined {
 }
 
 // Output time to segment, time into it and source frame. Times outside the reel clamp to its
-// first or last frame; an empty EDL has nothing to show.
+// first or last frame; zero-length segments are never shown, and an empty EDL shows nothing.
 export function remap(edl: EDL, outT: number): Remapped | undefined {
-  const last = edl.segments.at(-1);
+  const shown = edl.segments.filter((s) => s.outDur > 0);
+  const last = shown.at(-1);
   let start = 0;
-  for (const segment of edl.segments) {
+  for (const segment of shown) {
     if (outT < start + segment.outDur || segment === last) {
       const local = Math.min(Math.max(outT - start, 0), segment.outDur);
       return { segment, local, srcT: sourceTime(segment, local) };
