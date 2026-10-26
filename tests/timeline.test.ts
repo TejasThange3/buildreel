@@ -32,21 +32,27 @@ describe("alignment on the real build", () => {
   });
 });
 
-const prompt = (t: number, text: string): AlignedEvent => ({
+const prompt = (t: number, text: string, sessionId = "s1"): AlignedEvent => ({
   kind: "prompt",
   at: 0,
   t,
   text,
-  sessionId: "s1",
+  sessionId,
 });
-const toolAt = (t: number, label: string): AlignedEvent => ({
+const toolAt = (t: number, label: string, sessionId = "s1"): AlignedEvent => ({
   kind: "tool",
   at: 0,
   t,
+  sessionId,
   tool: "Bash",
   label,
 });
-const turnEnd = (t: number): AlignedEvent => ({ kind: "turnEnd", at: 0, t });
+const turnEnd = (t: number, sessionId = "s1"): AlignedEvent => ({
+  kind: "turnEnd",
+  at: 0,
+  t,
+  sessionId,
+});
 
 describe("buildSteps", () => {
   it("splits work at the turn end and review at the next prompt", () => {

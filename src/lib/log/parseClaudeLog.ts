@@ -35,17 +35,19 @@ function userEvent(line: LogLine): BuildEvent | undefined {
   const raw = userText(line);
   if (!raw) return undefined;
   const at = Date.parse(line.timestamp);
-  if (raw.startsWith(INTERRUPT_PREFIX)) return { kind: "interrupt", at };
+  const { sessionId } = line;
+  if (raw.startsWith(INTERRUPT_PREFIX)) return { kind: "interrupt", at, sessionId };
   // Older and CLI logs have no origin; there, any text the user record carries is the prompt.
   if (line.origin && line.origin.kind !== "human") return undefined;
   if (NOISE_PREFIXES.some((p) => raw.startsWith(p))) return undefined;
   const text = redact(cleanPrompt(raw));
   if (!text) return undefined;
-  return { kind: "prompt", at, text, sessionId: line.sessionId };
+  return { kind: "prompt", at, text, sessionId };
 }
 
 // Reads, greps and globs collapse into one "Read N files" event per turn.
 type Turn = {
+  sessionId: string;
   lastAssistantAt?: number;
   reads?: { event: Extract<BuildEvent, { kind: "tool" }>; count: number };
 };
@@ -53,19 +55,17 @@ type Turn = {
 export function parseClaudeLogs(files: string[]): ParsedLog {
   const { lines, skippedLines } = readLogLines(files);
   const events: BuildEvent[] = [];
-  // Turn state is per session: imported sessions can overlap in time, and one session's prompt
-  // must not close another's turn or merge its reads.
+  // Turn state is per session, so overlapping sessions never close or merge each other's turns.
   const turns = new Map<string, Turn>();
   const turnOf = (sessionId: string): Turn => {
-    const turn = turns.get(sessionId) ?? {};
+    const turn = turns.get(sessionId) ?? { sessionId };
     turns.set(sessionId, turn);
     return turn;
   };
-  // A turn ends at its last assistant record: interrupted turns have no end_turn, and turns
-  // resumed by a subagent report keep working after one.
+  // A turn ends at its last assistant record: interrupted ones lack end_turn, resumed ones pass it.
   const endTurn = (turn: Turn) => {
     if (turn.lastAssistantAt !== undefined) {
-      events.push({ kind: "turnEnd", at: turn.lastAssistantAt });
+      events.push({ kind: "turnEnd", at: turn.lastAssistantAt, sessionId: turn.sessionId });
     }
     turn.lastAssistantAt = undefined;
     turn.reads = undefined;
@@ -74,7 +74,8 @@ export function parseClaudeLogs(files: string[]): ParsedLog {
     // Compact summaries are the agent's recap of earlier context, logged as a user line.
     if (line.isMeta || line.isSidechain || line.isCompactSummary) continue;
     const at = Date.parse(line.timestamp);
-    const turn = turnOf(line.sessionId);
+    const { sessionId } = line;
+    const turn = turnOf(sessionId);
     if (line.type === "user") {
       const event = userEvent(line);
       if (!event) continue;
@@ -85,21 +86,20 @@ export function parseClaudeLogs(files: string[]): ParsedLog {
     turn.lastAssistantAt = at;
     if (typeof line.message.content === "string") continue;
     for (const b of line.message.content) {
-      if ("text" in b && b.text.trim()) events.push({ kind: "reply", at });
+      if ("text" in b && b.text.trim()) events.push({ kind: "reply", at, sessionId });
       if (!("name" in b) || isHiddenTool(b.name)) continue;
-      if (!isReadTool(b.name)) {
-        events.push({ kind: "tool", at, tool: b.name, label: toolLabel(b.name, b.input) });
-      } else if (turn.reads) {
-        turn.reads.count++;
-        turn.reads.event.label = readLabel(turn.reads.count);
-      } else {
-        turn.reads = { event: { kind: "tool", at, tool: "Read", label: readLabel(1) }, count: 1 };
-        events.push(turn.reads.event);
+      const read = isReadTool(b.name);
+      if (read && turn.reads) {
+        turn.reads.event.label = readLabel(++turn.reads.count);
+        continue;
       }
+      const label = read ? readLabel(1) : toolLabel(b.name, b.input);
+      const event = { kind: "tool" as const, at, sessionId, tool: read ? "Read" : b.name, label };
+      if (read) turn.reads = { event, count: 1 };
+      events.push(event);
     }
   }
   for (const turn of turns.values()) endTurn(turn);
-  // A turn end is only known when its session's next prompt arrives, so it can be pushed after
-  // later events from another session. The sort is stable, so ties keep their order.
+  // Turn ends of overlapping sessions arrive late; the stable sort restores time order.
   return { events: events.sort((a, b) => a.at - b.at), skippedLines };
 }

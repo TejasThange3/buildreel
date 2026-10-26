@@ -1,10 +1,12 @@
-// `at` is epoch milliseconds (UTC), taken from the log line's timestamp.
-export type BuildEvent =
-  | { kind: "prompt"; at: number; text: string; sessionId: string }
-  | { kind: "tool"; at: number; tool: string; label: string }
-  | { kind: "reply"; at: number }
-  | { kind: "turnEnd"; at: number }
-  | { kind: "interrupt"; at: number };
+// `at` is epoch milliseconds (UTC), taken from the log line's timestamp. Every event keeps its
+// session, so work from overlapping sessions stays with the prompt that started it.
+export type BuildEvent = { at: number; sessionId: string } & (
+  | { kind: "prompt"; text: string }
+  | { kind: "tool"; tool: string; label: string }
+  | { kind: "reply" }
+  | { kind: "turnEnd" }
+  | { kind: "interrupt" }
+);
 
 export type ParsedLog = { events: BuildEvent[]; skippedLines: number };
 
