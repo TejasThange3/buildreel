@@ -163,3 +163,21 @@ describe("parseClaudeLogs", () => {
     ).toEqual(["use key [redacted]", "Ran Send to [redacted]"]);
   });
 });
+
+describe("timestamps", () => {
+  it("accepts offsets and orders by the instant, not the text", () => {
+    const line = (uuid: string, timestamp: string, content: string) =>
+      JSON.stringify({ type: "user", uuid, timestamp, sessionId: "s1", message: { content } });
+    const { events, skippedLines } = parseClaudeLogs([
+      [
+        line("b", "2026-10-26T15:00:00+05:30", "second"),
+        line("a", "2026-10-26T09:29:00Z", "first"),
+      ].join("\n"),
+    ]);
+    expect(skippedLines).toBe(0);
+    expect(events.flatMap((e) => (e.kind === "prompt" ? [e.text] : []))).toEqual([
+      "first",
+      "second",
+    ]);
+  });
+});

@@ -13,7 +13,7 @@ const block = z.union([
 const logLine = z.object({
   type: z.enum(["user", "assistant"]),
   uuid: z.string(),
-  timestamp: z.iso.datetime(),
+  timestamp: z.iso.datetime({ offset: true }),
   sessionId: z.string(),
   isMeta: z.boolean().optional(),
   isSidechain: z.boolean().optional(),
