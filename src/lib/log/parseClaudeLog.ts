@@ -3,6 +3,11 @@ import type { BuildEvent, ParsedLog } from "@/shared/types";
 
 const block = z.union([
   z.object({ type: z.literal("text"), text: z.string() }),
+  z.object({
+    type: z.literal("tool_use"),
+    name: z.string(),
+    input: z.record(z.string(), z.unknown()),
+  }),
   z.object({ type: z.string() }),
 ]);
 
@@ -86,14 +91,63 @@ function promptEvent(line: LogLine): BuildEvent | undefined {
   return { kind: "prompt", at: Date.parse(line.timestamp), text, sessionId: line.sessionId };
 }
 
+const EDIT_TOOLS = new Set(["Edit", "Write", "MultiEdit", "NotebookEdit"]);
+const SHELL_TOOLS = new Set(["Bash", "PowerShell"]);
+const READ_TOOLS = new Set(["Read", "Grep", "Glob"]);
+// Agent bookkeeping (desktop task list and wrap-up, tool discovery) is not work a viewer would recognise.
+const HIDDEN_TOOL = /^(mcp__ccd_|ToolSearch$|TodoWrite$)/;
+
+function stringField(input: Record<string, unknown>, key: string): string | undefined {
+  const value = input[key];
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
+function toolLabel(name: string, input: Record<string, unknown>): string {
+  if (EDIT_TOOLS.has(name)) {
+    const path = stringField(input, "file_path") ?? stringField(input, "notebook_path") ?? "";
+    return `Edited ${path.split(/[\\/]/).pop()}`;
+  }
+  if (SHELL_TOOLS.has(name)) {
+    const what = stringField(input, "description") ?? stringField(input, "command")?.slice(0, 40);
+    return `Ran ${what ?? name}`;
+  }
+  if (name === "Agent" || name === "Task") return "Started a subagent";
+  return name.split("__").pop() ?? name;
+}
+
+function readLabel(count: number): string {
+  return `Read ${count} ${count === 1 ? "file" : "files"}`;
+}
+
 export function parseClaudeLogs(files: string[]): ParsedLog {
   const { lines, skippedLines } = readLines(files);
   const events: BuildEvent[] = [];
+  // Reads, greps and globs collapse into one "Read N files" event per turn.
+  let reads: { event: Extract<BuildEvent, { kind: "tool" }>; count: number } | undefined;
   for (const line of lines) {
     if (line.isMeta || line.isSidechain) continue;
-    if (line.type !== "user") continue;
-    const event = promptEvent(line);
-    if (event) events.push(event);
+    const at = Date.parse(line.timestamp);
+    if (line.type === "user") {
+      const event = promptEvent(line);
+      if (!event) continue;
+      events.push(event);
+      reads = undefined;
+      continue;
+    }
+    if (typeof line.message.content === "string") continue;
+    for (const b of line.message.content) {
+      if ("text" in b && b.text.trim()) events.push({ kind: "reply", at });
+      if (!("name" in b) || HIDDEN_TOOL.test(b.name)) continue;
+      if (!READ_TOOLS.has(b.name)) {
+        events.push({ kind: "tool", at, tool: b.name, label: toolLabel(b.name, b.input) });
+      } else if (reads) {
+        reads.count++;
+        reads.event.label = readLabel(reads.count);
+      } else {
+        reads = { event: { kind: "tool", at, tool: "Read", label: readLabel(1) }, count: 1 };
+        events.push(reads.event);
+      }
+    }
   }
   return { events, skippedLines };
 }
