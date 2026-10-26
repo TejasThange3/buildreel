@@ -14,3 +14,6 @@ export type ActivityTrack = number[];
 // startedAt: epoch ms at media time 0, the same clock as BuildEvent.at. Video times everywhere
 // are media timestamps, as the <video> element and Mediabunny report them.
 export type VideoProbe = { durationS: number; width: number; height: number; startedAt: number };
+
+// t: seconds on the video's media timeline.
+export type AlignedEvent = BuildEvent & { t: number };
