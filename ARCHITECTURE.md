@@ -177,7 +177,8 @@ for each line:
      origin present                          -> prompt only if origin.kind == 'human'
      origin absent (older/CLI logs)          -> content string or text blocks -> prompt
      text == "[Request interrupted by user]" -> interrupt
-     noise filter: starts with "<command-name>", "<local-command-stdout>", "Caveat:" -> skip
+     noise filter: starts with "<command-name>", "<command-message>", "<local-command-stdout>",
+                   "<local-command-caveat>" -> skip
      cleanup: unwrap <pasted_content ...> tags, @"C:\path\file.md" -> @file.md
   type 'assistant':
      tool_use blocks -> tool events, label by tool:
