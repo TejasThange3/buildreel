@@ -358,7 +358,7 @@ Acceptance checks per phase
 - `npm run typecheck && npm run lint && npm test` before every commit.
 - Fixtures come from Tejas's real logs, trimmed and redacted. Never synthetic logs as the only fixture.
 - Manual check list before submission: Chrome and Edge, a 10-minute and a 60-minute recording, mp4 and mkv, LLM key removed (fallbacks work), rate limit hit (clear message), phone view of the live link (preview plays).
-- A separate review pass (a fresh agent that has not seen the code being written) reads the diff of each phase against sections 5 and 6 and lists violations.
+- A separate review pass reads the diff of each phase against sections 5 and 6 and lists violations and bugs. The reviewer is Codex (model gpt-6.1-sol, high reasoning effort, read-only sandbox), a different model with fresh context; Claude Code writes the code, verifies each finding, and fixes confirmed ones in their own commits.
 
 ---
 
