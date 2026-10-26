@@ -143,6 +143,29 @@ describe("buildSteps", () => {
     ]);
   });
 
+  it("keeps titles within 48 code points and skips abbreviation periods", () => {
+    const astral = "a".repeat(45) + "\u{10400}".repeat(6);
+    const { steps } = buildSteps(
+      [
+        prompt(0, "a".repeat(60)),
+        prompt(1, astral),
+        prompt(2, "Use e.g. the existing parser. Then test it."),
+        prompt(3, "Ask Dr. Smith to fix it. Then ship."),
+        prompt(4, "Is it ready? Ship it!"),
+      ],
+      5,
+      [],
+    );
+    const titles = steps.map((s) => s.title);
+    expect(titles.slice(0, 2).map((t) => Array.from(t).length)).toEqual([48, 48]);
+    expect(titles[1]).toBe("a".repeat(45) + "\u{10400}".repeat(2) + "…");
+    expect(titles.slice(2)).toEqual([
+      "Use e.g. the existing parser.",
+      "Ask Dr. Smith to fix it.",
+      "Is it ready?",
+    ]);
+  });
+
   it("averages activity over the review window only", () => {
     // Bins are 0.5 s: work covers bins 0-3, review bins 4-7.
     const activity = [1, 1, 1, 1, 0.2, 0.4, 0.6, 0.8];

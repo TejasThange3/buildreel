@@ -7,12 +7,17 @@ type Draft = {
 };
 
 const TITLE_MAX = 48;
+// A sentence ends at . ! or ? before whitespace, except after common abbreviations.
+const SENTENCE_END = /(?<!\b(?:e\.g|i\.e|etc|vs|Dr|Mr|Mrs|Ms|St)\.)(?<=[.!?])\s+|\n/;
 
 // Fallback title, and the only one until LLM titles exist: the first sentence, cut at a word.
+// Lengths count code points (ellipsis included) so a cut never splits a surrogate pair.
 function titleOf(prompt: string): string {
-  const sentence = prompt.split(/(?<=[.!?])\s|\n/)[0]?.trim() ?? "";
-  if (sentence.length <= TITLE_MAX) return sentence;
-  return `${sentence.slice(0, TITLE_MAX).replace(/\s+\S*$/, "")}…`;
+  const sentence = prompt.split(SENTENCE_END)[0]?.trim() ?? "";
+  const chars = Array.from(sentence);
+  if (chars.length <= TITLE_MAX) return sentence;
+  const cut = chars.slice(0, TITLE_MAX - 1).join("");
+  return `${cut.replace(/\s+\S*$/, "")}…`;
 }
 
 // Work attaches to the latest prompt of its own session, so overlapping sessions keep their
