@@ -76,6 +76,26 @@ describe("buildSteps", () => {
     expect(steps[0]?.tools).toEqual([{ t: 12, label: "Ran tests" }]);
   });
 
+  it("keeps work with its own session when sessions overlap", () => {
+    const { steps } = buildSteps(
+      [
+        prompt(0, "main", "A"),
+        toolAt(1, "Ran main work", "A"),
+        prompt(2, "side", "B"),
+        toolAt(3, "Ran side work", "B"),
+        turnEnd(3, "B"),
+        toolAt(8, "Ran more main work", "A"),
+        turnEnd(8, "A"),
+      ],
+      10,
+      [],
+    );
+    expect(steps.map((s) => [s.prompt, s.workEnd, s.tools.map((t) => t.label)])).toEqual([
+      ["main", 2, ["Ran main work"]],
+      ["side", 3, ["Ran side work"]],
+    ]);
+  });
+
   it("ends work at the last tool when no turn end was logged, or at the prompt if idle", () => {
     const { steps } = buildSteps(
       [prompt(0, "one"), toolAt(5, "Ran a"), toolAt(8, "Ran b"), prompt(12, "two")],

@@ -15,15 +15,20 @@ function titleOf(prompt: string): string {
   return `${sentence.slice(0, TITLE_MAX).replace(/\s+\S*$/, "")}…`;
 }
 
+// Work attaches to the latest prompt of its own session, so overlapping sessions keep their
+// tools and turn ends; buildSteps then clamps each step at the next prompt of any session.
 function drafts(events: AlignedEvent[]): Draft[] {
   const out: Draft[] = [];
+  const open = new Map<string, Draft>();
   for (const e of events) {
     if (e.kind === "prompt") {
-      out.push({ prompt: e, tools: [] });
+      const draft: Draft = { prompt: e, tools: [] };
+      out.push(draft);
+      open.set(e.sessionId, draft);
       continue;
     }
-    // Work logged before the first prompt belongs to no step.
-    const draft = out.at(-1);
+    // Work logged before its session's first prompt belongs to no step.
+    const draft = open.get(e.sessionId);
     if (draft && e.kind === "turnEnd") draft.turnEnd = e.t;
     if (draft && e.kind === "tool") draft.tools.push({ t: e.t, label: e.label });
   }
