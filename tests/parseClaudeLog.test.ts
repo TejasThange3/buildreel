@@ -53,14 +53,17 @@ describe("parseClaudeLogs", () => {
     expect(parseClaudeLogs([file, file, file]).skippedLines).toBe(1);
   });
 
-  it("keeps human prompts and drops tool results, meta, sidechain and non-human origins", () => {
+  it("keeps human prompts and drops tool results, meta, sidechain, summaries and non-human origins", () => {
     const { events } = parse(
       human(1, "add a parser"),
       user(2, [{ type: "tool_result", tool_use_id: "t1", content: "ok" }]),
       user(3, [text("[Image: source: C:/tmp/1.webp]")], { isMeta: true }),
       user(4, "subagent prompt", { isSidechain: true }),
       user(5, "queued notification", { origin: { kind: "task-notification" } }),
-      user(6, "cli prompt without origin"),
+      user(6, "This session is being continued from a previous conversation.", {
+        isCompactSummary: true,
+      }),
+      user(7, "cli prompt without origin"),
     );
     expect(events.flatMap((e) => (e.kind === "prompt" ? [e.text] : []))).toEqual([
       "add a parser",

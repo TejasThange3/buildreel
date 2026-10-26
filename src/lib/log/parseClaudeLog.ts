@@ -58,7 +58,8 @@ export function parseClaudeLogs(files: string[]): ParsedLog {
     reads = undefined;
   };
   for (const line of lines) {
-    if (line.isMeta || line.isSidechain) continue;
+    // Compact summaries are the agent's recap of earlier context, logged as a user line.
+    if (line.isMeta || line.isSidechain || line.isCompactSummary) continue;
     const at = Date.parse(line.timestamp);
     if (line.type === "user") {
       const event = userEvent(line);

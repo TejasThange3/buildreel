@@ -17,6 +17,7 @@ const logLine = z.object({
   sessionId: z.string(),
   isMeta: z.boolean().optional(),
   isSidechain: z.boolean().optional(),
+  isCompactSummary: z.boolean().optional(),
   origin: z.object({ kind: z.string() }).optional(),
   message: z.object({ content: z.union([z.string(), z.array(block)]) }),
 });
