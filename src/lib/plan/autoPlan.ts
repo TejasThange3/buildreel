@@ -1,9 +1,14 @@
-import type { Constraints, EDL, Segment, Step } from "@/shared/types";
+import { bestWindow } from "@/lib/timeline/activityWindow";
+import type { ActivityTrack, Constraints, EDL, Segment, Step } from "@/shared/types";
 
 // Output seconds of one part of a step, and how far fitting may shrink or grow it.
 type Part = { dur: number; min: number; max: number };
 
-type StepPlan = { step: Step; hold: Part; fast: Part };
+type StepPlan = { step: Step; hold: Part; fast: Part; real: Part };
+
+// Below this mean activity even the best review window is a still screen, not worth real time.
+// Activity is scaled so a static screen sits at 0 (see lib/media/activity.ts).
+const REAL_MIN_ACTIVITY = 0.05;
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), hi);
 
@@ -28,15 +33,33 @@ function fastPart(step: Step, forcedSpeed: number | undefined): Part {
   return { dur, min: Math.min(dur, 1.5), max: dur };
 }
 
-function draftPlan(step: Step, constraints: Constraints): StepPlan {
+// The checking moment plays in real time: the most active window of the review, up to 6
+// seconds, shrinkable to 3 and growable to the whole review. Steered emphasis keeps it even on
+// a still screen.
+function realPart(step: Step, activity: ActivityTrack, emphasized: boolean): Part {
+  const reviewLen = step.reviewEnd - step.workEnd;
+  const dur = Math.min(reviewLen, 6);
+  const best = bestWindow(activity, step.workEnd, step.reviewEnd, dur);
+  if (dur <= 0 || (best.activity < REAL_MIN_ACTIVITY && !emphasized)) {
+    return { dur: 0, min: 0, max: 0 };
+  }
+  return { dur, min: Math.min(dur, 3), max: reviewLen };
+}
+
+function draftPlan(step: Step, activity: ActivityTrack, constraints: Constraints): StepPlan {
   return {
     step,
     hold: holdPart(step.prompt),
     fast: fastPart(step, constraints.speed[step.index]),
+    real: realPart(step, activity, step.index in constraints.emphasis),
   };
 }
 
-function stepSegments({ step, hold, fast }: StepPlan): Segment[] {
+function stepSegments(
+  { step, hold, fast, real }: StepPlan,
+  activity: ActivityTrack,
+  constraints: Constraints,
+): Segment[] {
   const segments: Segment[] = [
     {
       id: `${step.index}-hold`,
@@ -59,13 +82,25 @@ function stepSegments({ step, hold, fast }: StepPlan): Segment[] {
       overlay: { kind: "tools", tools: step.tools },
     });
   }
+  if (real.dur > 0) {
+    // The window is chosen at the final length, after fitting.
+    const { start } = bestWindow(activity, step.workEnd, step.reviewEnd, real.dur);
+    segments.push({
+      id: `${step.index}-real`,
+      step: step.index,
+      mode: "real",
+      src: [start, start + real.dur],
+      outDur: real.dur,
+      overlay: { kind: "title", text: constraints.titles[step.index] ?? step.title },
+    });
+  }
   return segments;
 }
 
-export function planReel(steps: Step[], constraints: Constraints): EDL {
+export function planReel(steps: Step[], activity: ActivityTrack, constraints: Constraints): EDL {
   const plans = steps
     .filter((s) => !constraints.dropped.includes(s.index))
-    .map((s) => draftPlan(s, constraints));
-  const segments = plans.flatMap(stepSegments);
+    .map((s) => draftPlan(s, activity, constraints));
+  const segments = plans.flatMap((plan) => stepSegments(plan, activity, constraints));
   return { segments, totalS: segments.reduce((sum, s) => sum + s.outDur, 0) };
 }
