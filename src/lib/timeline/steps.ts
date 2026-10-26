@@ -1,4 +1,4 @@
-import type { AlignedEvent, Step } from "@/shared/types";
+import { ACTIVITY_BIN_S, type ActivityTrack, type AlignedEvent, type Step } from "@/shared/types";
 
 type Draft = {
   prompt: Extract<AlignedEvent, { kind: "prompt" }>;
@@ -30,9 +30,15 @@ function drafts(events: AlignedEvent[]): Draft[] {
   return out;
 }
 
+function meanActivity(activity: ActivityTrack, from: number, to: number): number {
+  const bins = activity.slice(Math.floor(from / ACTIVITY_BIN_S), Math.ceil(to / ACTIVITY_BIN_S));
+  return bins.length ? bins.reduce((sum, s) => sum + s, 0) / bins.length : 0;
+}
+
 export function buildSteps(
   events: AlignedEvent[],
   durationS: number,
+  activity: ActivityTrack,
 ): { steps: Step[]; droppedSteps: number } {
   const all = drafts(events);
   const steps: Step[] = [];
@@ -54,6 +60,7 @@ export function buildSteps(
       workEnd,
       reviewEnd,
       tools: draft.tools.filter((tool) => tool.t <= workEnd),
+      reviewActivity: meanActivity(activity, workEnd, reviewEnd),
     });
   });
   return { steps, droppedSteps };

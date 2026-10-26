@@ -8,7 +8,9 @@ export type BuildEvent =
 
 export type ParsedLog = { events: BuildEvent[]; skippedLines: number };
 
-// One 0..1 score per ACTIVITY_BIN_S (0.5 s) of video: how much the screen changed.
+export const ACTIVITY_BIN_S = 0.5;
+
+// One 0..1 score per ACTIVITY_BIN_S of video: how much the screen changed.
 export type ActivityTrack = number[];
 
 // startedAt: epoch ms at media time 0, the same clock as BuildEvent.at. Video times everywhere
@@ -27,4 +29,5 @@ export type Step = {
   workEnd: number;
   reviewEnd: number;
   tools: { t: number; label: string }[];
+  reviewActivity: number; // 0..1 mean activity during review
 };

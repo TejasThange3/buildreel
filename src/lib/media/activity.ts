@@ -1,10 +1,8 @@
 import { EncodedPacketSink } from "mediabunny";
-import type { ActivityTrack } from "@/shared/types";
+import { ACTIVITY_BIN_S, type ActivityTrack } from "@/shared/types";
 import { openVideo } from "./probe";
 
 export type PacketSize = { timestamp: number; byteLength: number; type: "key" | "delta" };
-
-const ACTIVITY_BIN_S = 0.5;
 
 function quantile(sorted: number[], q: number): number {
   return sorted[Math.floor(q * (sorted.length - 1))] ?? 0;
