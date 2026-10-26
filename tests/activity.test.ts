@@ -48,4 +48,15 @@ describe("activityTrack", () => {
     const flat = Array.from({ length: 40 }, (_, i) => delta(i * 0.25, 7000));
     expect(activityTrack([...flat, delta(30, 1e6)], 10)).toEqual(new Array(20).fill(0));
   });
+
+  it("keeps encoder jitter on a static screen near zero", () => {
+    // Two packets per bin at 3.5 KB plus up to 0.6 KB of jitter, like the real static floor.
+    const jitter = Array.from({ length: 240 }, (_, i) => delta(i * 0.25, 3500 + (i % 7) * 100));
+    expect(Math.max(...activityTrack(jitter, 60))).toBeLessThan(0.25);
+  });
+
+  it("handles a recording with no packets or no length", () => {
+    expect(activityTrack([], 2)).toEqual([0, 0, 0, 0]);
+    expect(activityTrack([], 0)).toEqual([]);
+  });
 });

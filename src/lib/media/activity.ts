@@ -4,7 +4,7 @@ import { openVideo } from "./probe";
 
 export type PacketSize = { timestamp: number; byteLength: number; type: "key" | "delta" };
 
-export const ACTIVITY_BIN_S = 0.5;
+const ACTIVITY_BIN_S = 0.5;
 
 function quantile(sorted: number[], q: number): number {
   return sorted[Math.floor(q * (sorted.length - 1))] ?? 0;
@@ -12,7 +12,9 @@ function quantile(sorted: number[], q: number): number {
 
 // Key packets are skipped: their size marks a GOP boundary (every ~8.3 s in OBS), not change.
 // Scaling runs from the 10th to the 99th percentile because a static screen still costs about
-// 7 KB per bin and a single window switch can be 20x the busiest typing.
+// 7 KB per bin and a single window switch can be 20x the busiest typing. The range is at least
+// the floor itself, so on a mostly static recording encoder jitter stays near 0 instead of
+// being stretched to fill 0..1; using the floor keeps that threshold free of bitrate settings.
 export function activityTrack(packets: PacketSize[], durationS: number): ActivityTrack {
   const bins = new Array<number>(Math.ceil(durationS / ACTIVITY_BIN_S)).fill(0);
   for (const p of packets) {
@@ -23,7 +25,7 @@ export function activityTrack(packets: PacketSize[], durationS: number): Activit
   const smooth = bins.map((_, i) => (at(i - 1) + at(i) + at(i + 1)) / 3);
   const sorted = [...smooth].sort((a, b) => a - b);
   const floor = quantile(sorted, 0.1);
-  const range = quantile(sorted, 0.99) - floor;
+  const range = Math.max(quantile(sorted, 0.99) - floor, floor);
   if (range <= 0) return smooth.map(() => 0);
   return smooth.map((v) => Math.min(Math.max((v - floor) / range, 0), 1));
 }
