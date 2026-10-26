@@ -20,7 +20,7 @@ function user(s: number, content: unknown, extra: Record<string, unknown> = {}) 
 
 const human = (s: number, text: string) => user(s, text, { origin: { kind: "human" } });
 
-function assistant(s: number, content: unknown[]) {
+function assistant(s: number, content: unknown[], extra: Record<string, unknown> = {}) {
   return JSON.stringify({
     type: "assistant",
     uuid: `a${++seq}`,
@@ -28,6 +28,7 @@ function assistant(s: number, content: unknown[]) {
     sessionId: "s1",
     isSidechain: false,
     message: { role: "assistant", content },
+    ...extra,
   });
 }
 
@@ -171,6 +172,29 @@ describe("parseClaudeLogs", () => {
       "interrupt",
       "Read 1 file",
       "turnEnd",
+    ]);
+  });
+
+  it("keeps turns of overlapping sessions apart", () => {
+    const side = { sessionId: "s2" };
+    const { events } = parse(
+      human(1, "main"),
+      assistant(2, [tool("Read", { file_path: "a.ts" })]),
+      user(3, "side question", { origin: { kind: "human" }, ...side }),
+      assistant(4, [tool("Read", { file_path: "b.ts" })], side),
+      assistant(5, [tool("Read", { file_path: "c.ts" })]),
+    );
+    expect(
+      events.map(
+        (e) => `${e.kind === "tool" ? e.label : e.kind}@${e.at / 1000 - Date.parse(at(0)) / 1000}`,
+      ),
+    ).toEqual([
+      "prompt@1",
+      "Read 2 files@2",
+      "prompt@3",
+      "Read 1 file@4",
+      "turnEnd@4",
+      "turnEnd@5",
     ]);
   });
 

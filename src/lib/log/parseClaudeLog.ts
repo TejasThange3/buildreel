@@ -44,46 +44,62 @@ function userEvent(line: LogLine): BuildEvent | undefined {
   return { kind: "prompt", at, text, sessionId: line.sessionId };
 }
 
+// Reads, greps and globs collapse into one "Read N files" event per turn.
+type Turn = {
+  lastAssistantAt?: number;
+  reads?: { event: Extract<BuildEvent, { kind: "tool" }>; count: number };
+};
+
 export function parseClaudeLogs(files: string[]): ParsedLog {
   const { lines, skippedLines } = readLogLines(files);
   const events: BuildEvent[] = [];
-  // Reads, greps and globs collapse into one "Read N files" event per turn.
-  let reads: { event: Extract<BuildEvent, { kind: "tool" }>; count: number } | undefined;
+  // Turn state is per session: imported sessions can overlap in time, and one session's prompt
+  // must not close another's turn or merge its reads.
+  const turns = new Map<string, Turn>();
+  const turnOf = (sessionId: string): Turn => {
+    const turn = turns.get(sessionId) ?? {};
+    turns.set(sessionId, turn);
+    return turn;
+  };
   // A turn ends at its last assistant record: interrupted turns have no end_turn, and turns
   // resumed by a subagent report keep working after one.
-  let lastAssistantAt: number | undefined;
-  const endTurn = () => {
-    if (lastAssistantAt !== undefined) events.push({ kind: "turnEnd", at: lastAssistantAt });
-    lastAssistantAt = undefined;
-    reads = undefined;
+  const endTurn = (turn: Turn) => {
+    if (turn.lastAssistantAt !== undefined) {
+      events.push({ kind: "turnEnd", at: turn.lastAssistantAt });
+    }
+    turn.lastAssistantAt = undefined;
+    turn.reads = undefined;
   };
   for (const line of lines) {
     // Compact summaries are the agent's recap of earlier context, logged as a user line.
     if (line.isMeta || line.isSidechain || line.isCompactSummary) continue;
     const at = Date.parse(line.timestamp);
+    const turn = turnOf(line.sessionId);
     if (line.type === "user") {
       const event = userEvent(line);
       if (!event) continue;
-      endTurn();
+      endTurn(turn);
       events.push(event);
       continue;
     }
-    lastAssistantAt = at;
+    turn.lastAssistantAt = at;
     if (typeof line.message.content === "string") continue;
     for (const b of line.message.content) {
       if ("text" in b && b.text.trim()) events.push({ kind: "reply", at });
       if (!("name" in b) || isHiddenTool(b.name)) continue;
       if (!isReadTool(b.name)) {
         events.push({ kind: "tool", at, tool: b.name, label: toolLabel(b.name, b.input) });
-      } else if (reads) {
-        reads.count++;
-        reads.event.label = readLabel(reads.count);
+      } else if (turn.reads) {
+        turn.reads.count++;
+        turn.reads.event.label = readLabel(turn.reads.count);
       } else {
-        reads = { event: { kind: "tool", at, tool: "Read", label: readLabel(1) }, count: 1 };
-        events.push(reads.event);
+        turn.reads = { event: { kind: "tool", at, tool: "Read", label: readLabel(1) }, count: 1 };
+        events.push(turn.reads.event);
       }
     }
   }
-  endTurn();
-  return { events, skippedLines };
+  for (const turn of turns.values()) endTurn(turn);
+  // A turn end is only known when its session's next prompt arrives, so it can be pushed after
+  // later events from another session. The sort is stable, so ties keep their order.
+  return { events: events.sort((a, b) => a.at - b.at), skippedLines };
 }
