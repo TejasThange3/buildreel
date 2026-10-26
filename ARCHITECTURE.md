@@ -67,7 +67,7 @@ Only short, redacted text (step titles, prompt excerpts, the instruction) ever l
               (Groq or Gemini; key held as a Vercel environment variable)
 ```
 
-One Next.js (App Router) project holds both sides. The editor page is a client component; Mediabunny and the activity worker are loaded client-only (dynamic import, no SSR). The only server code is the route handlers under `src/app/api/*`. The server never receives video.
+One Next.js (App Router) project holds both sides. `/` is a static landing page whose hero plays the sample reel (a pre-exported `reel.mp4`, plain `<video>`, no Mediabunny) and links to `/editor`. The editor page is a client component; Mediabunny and the activity worker are loaded client-only (dynamic import, no SSR). The only server code is the route handlers under `src/app/api/*`. The server never receives video.
 
 Design principle: the deterministic pipeline (stages 1-8, 10) produces a complete reel with zero network calls. The LLM only improves titles and turns spoken instructions into structured ops. If the LLM is down, the app still works.
 
@@ -336,10 +336,12 @@ buildreel/
     sample/project.json          offset, cached titles, targetS
     sample/session.jsonl         redacted, trimmed real log
     sample/recording.mp4         720p, under ~20 MB; else Vercel Blob
+    sample/reel.mp4              the sample cut, exported by Buildreel, played on the landing page
   src/
     app/
       layout.tsx        ~25      fonts, metadata
-      page.tsx          ~20      renders <Editor/> (client-only)
+      page.tsx          ~60      landing: hero with sample reel, how it works, link to /editor
+      editor/page.tsx   ~20      renders <Editor/> (client-only)
       globals.css
       api/steer/route.ts       ~70
       api/titles/route.ts      ~50
@@ -370,6 +372,7 @@ buildreel/
     lib/render/postDraft.ts    ~40
     ui/DropZone.tsx  ui/SyncPanel.tsx  ui/Player.tsx  ui/Timeline.tsx
     ui/StepList.tsx  ui/SteerBox.tsx   ui/ExportPanel.tsx      each ~60-150
+    ui/landing/Hero.tsx  ui/landing/HowItWorks.tsx            each ~80
   tests/
     fixtures/  (trimmed real jsonl, tiny filenames list)
     parseClaudeLog.test.ts  redact.test.ts  startTime.test.ts
@@ -408,7 +411,7 @@ GitHub (TejasThange3/buildreel)  --push-->  Vercel (Next.js preset, Hobby plan)
                                             env vars: LLM_API_KEY, LLM_BASE_URL, LLM_MODEL,
                                                       UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
                                             Upstash Redis (free tier, via Vercel marketplace)
-live: https://buildreel.vercel.app  (no sign-in, sample loads on first visit)
+live: https://buildreel.vercel.app  (no sign-in; landing plays the sample reel, /editor opens the sample project)
 ```
 
 ---

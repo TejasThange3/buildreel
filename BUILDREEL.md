@@ -95,6 +95,7 @@ Everything below is in scope. Tiers set the order, not what gets cut. Tier 1 mus
 - SteerBox -> /api/steer -> ops -> replan; undo/redo.
 - Export mp4 (with audio for real-time parts).
 - Sample project from the real build session, deployed on Vercel.
+- Landing page at `/` playing the sample reel, linking to the editor at `/editor`.
 
 ### Tier 2
 - LLM step titles (/api/titles) with fallback.
@@ -275,6 +276,8 @@ Phase 8 - deploy and sample
 63. chore(deploy): add llm and upstash env vars
 64. feat: add redacted sample project from real build session
 65. feat(ui): load sample project on first visit
+65a. feat(ui): landing page with sample reel hero and editor link
+65b. style(ui): landing motion with reduced-motion support
 66. docs: readme with live link, how it works and local setup
 
 Phase 9 - tier 2
