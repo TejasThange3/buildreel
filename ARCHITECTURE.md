@@ -365,7 +365,9 @@ buildreel/
       schema.ts         ~80      zod schemas used by client and route handlers
     ui/Editor.tsx       ~80      'use client'; stage switch: import / sync / edit / export
     state/store.ts      ~120     zustand: project, constraints history, derived EDL
-    lib/log/parseClaudeLog.ts  ~120
+    lib/log/readLogLines.ts    ~60   zod line schema, read + dedupe files
+    lib/log/parseClaudeLog.ts  ~90   lines -> BuildEvent[]
+    lib/log/toolLabel.ts       ~30
     lib/log/redact.ts          ~40
     lib/media/probe.ts         ~50
     lib/media/startTime.ts     ~40
