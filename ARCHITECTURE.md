@@ -226,7 +226,9 @@ step k = prompt k
   work phase   : [promptT, workEnd]               agent working (tool events inside)
   review phase : [workEnd, next promptT or end]   you checking the result
 ```
-Events outside `[0, durationS]` after alignment are dropped (log covers more than the recording).
+Steps whose prompt lands outside `[0, durationS]` after alignment are dropped and counted (the log covers more than the recording). Events are kept until steps are built, so a turn still running when recording stopped ends at `durationS` instead of losing its end. A step with no turn end before the next prompt ends its work at its last tool event.
+
+Day 1 check against two real recordings: the auto start time put prompts 0.3 s and 2.4 s from the visible submit. The error varies per recording (recorder start-up, log write delay), so the SyncPanel nudge stays the way to get under 2 s.
 
 ### 6.5 Planner and duration fit
 
