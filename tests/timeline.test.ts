@@ -149,4 +149,11 @@ describe("buildSteps", () => {
     const { steps } = buildSteps([prompt(0, "go"), turnEnd(2)], 4, activity);
     expect(steps[0]?.reviewActivity).toBeCloseTo(0.5, 9);
   });
+
+  it("weights partly covered bins and scores an empty review as zero", () => {
+    const partial = buildSteps([prompt(0, "go"), turnEnd(0.49), prompt(1, "next")], 2, [1, 0]);
+    expect(partial.steps[0]?.reviewActivity).toBeCloseTo(0.01 / 0.51, 9);
+    const empty = buildSteps([prompt(0, "go"), turnEnd(0.25), prompt(0.25, "next")], 1, [1, 0]);
+    expect(empty.steps[0]?.reviewActivity).toBe(0);
+  });
 });

@@ -35,9 +35,16 @@ function drafts(events: AlignedEvent[]): Draft[] {
   return out;
 }
 
+// Each bin counts by how much of it the window covers, so a window clipping a busy bin's edge
+// does not inherit the whole bin's score.
 function meanActivity(activity: ActivityTrack, from: number, to: number): number {
-  const bins = activity.slice(Math.floor(from / ACTIVITY_BIN_S), Math.ceil(to / ACTIVITY_BIN_S));
-  return bins.length ? bins.reduce((sum, s) => sum + s, 0) / bins.length : 0;
+  if (to <= from) return 0;
+  let sum = 0;
+  for (let i = Math.floor(from / ACTIVITY_BIN_S); i < Math.ceil(to / ACTIVITY_BIN_S); i++) {
+    const overlap = Math.min(to, (i + 1) * ACTIVITY_BIN_S) - Math.max(from, i * ACTIVITY_BIN_S);
+    sum += (activity[i] ?? 0) * overlap;
+  }
+  return sum / (to - from);
 }
 
 export function buildSteps(
