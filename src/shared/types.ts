@@ -8,5 +8,8 @@ export type BuildEvent =
 
 export type ParsedLog = { events: BuildEvent[]; skippedLines: number };
 
+// One 0..1 score per ACTIVITY_BIN_S (0.5 s) of video: how much the screen changed.
+export type ActivityTrack = number[];
+
 // startedAt: epoch ms of the first frame, the same clock as BuildEvent.at.
 export type VideoProbe = { durationS: number; width: number; height: number; startedAt: number };

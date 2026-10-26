@@ -1,7 +1,32 @@
 import { EncodedPacketSink } from "mediabunny";
+import type { ActivityTrack } from "@/shared/types";
 import { openVideo } from "./probe";
 
 export type PacketSize = { timestamp: number; byteLength: number; type: "key" | "delta" };
+
+export const ACTIVITY_BIN_S = 0.5;
+
+function quantile(sorted: number[], q: number): number {
+  return sorted[Math.floor(q * (sorted.length - 1))] ?? 0;
+}
+
+// Key packets are skipped: their size marks a GOP boundary (every ~8.3 s in OBS), not change.
+// Scaling runs from the 10th to the 99th percentile because a static screen still costs about
+// 7 KB per bin and a single window switch can be 20x the busiest typing.
+export function activityTrack(packets: PacketSize[], durationS: number): ActivityTrack {
+  const bins = new Array<number>(Math.ceil(durationS / ACTIVITY_BIN_S)).fill(0);
+  for (const p of packets) {
+    const i = Math.floor(p.timestamp / ACTIVITY_BIN_S);
+    if (p.type === "delta" && i >= 0 && i < bins.length) bins[i] = (bins[i] ?? 0) + p.byteLength;
+  }
+  const at = (i: number) => bins[Math.min(Math.max(i, 0), bins.length - 1)] ?? 0;
+  const smooth = bins.map((_, i) => (at(i - 1) + at(i) + at(i + 1)) / 3);
+  const sorted = [...smooth].sort((a, b) => a - b);
+  const floor = quantile(sorted, 0.1);
+  const range = quantile(sorted, 0.99) - floor;
+  if (range <= 0) return smooth.map(() => 0);
+  return smooth.map((v) => Math.min(Math.max((v - floor) / range, 0), 1));
+}
 
 // Metadata only: no decoding, so a 16 min 1080p recording scans in about 0.1 s.
 export async function readPacketSizes(file: File): Promise<PacketSize[]> {
