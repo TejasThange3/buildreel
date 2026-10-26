@@ -7,3 +7,5 @@ export type BuildEvent =
   | { kind: "interrupt"; at: number };
 
 export type ParsedLog = { events: BuildEvent[]; skippedLines: number };
+
+export type VideoProbe = { durationS: number; width: number; height: number };
