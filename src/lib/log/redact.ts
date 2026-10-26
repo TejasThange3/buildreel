@@ -44,13 +44,13 @@ const isPathSegment = (s: string) =>
   /[a-z]{4}|^[a-z0-9_-]*$/.test(s) || (s.length <= 8 && /[a-z]{2}/.test(s));
 
 // Base64 can look word-like, so a slashed run is a path only with context: a drive letter ("C:",
-// not a URL scheme), a file extension (not a full stop), or a rooted "/" or "~/" path.
+// not a URL scheme), a home "~/", a file extension (not a full stop), or a leading "/" with
+// word-like segments (base64 can itself start with "/").
 const DRIVE = /(?:^|[^A-Za-z0-9])[A-Za-z]:$/;
 const EXTENSION = /^\.[A-Za-z0-9]{1,5}(?![A-Za-z0-9])/;
 function isPath(run: string, before: string, after: string): boolean {
-  if (DRIVE.test(before) || EXTENSION.test(after)) return true;
-  const rooted = run.startsWith("/") || before.endsWith("~");
-  return rooted && run.split("/").every(isPathSegment);
+  if (DRIVE.test(before) || before.endsWith("~") || EXTENSION.test(after)) return true;
+  return run.startsWith("/") && run.split("/").every(isPathSegment);
 }
 
 // Tokens mix digits and both cases; "+" and "=" only occur in base64. Without "/", uuids and

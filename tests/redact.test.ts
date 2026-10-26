@@ -94,6 +94,7 @@ describe("redact", () => {
     "C:/Projects/Buildreel2026/API/Client",
     "/Users/Tejas/Projects/Buildreel2026/Notes",
     "~/Projects/Buildreel2026/Notes/Phase3Plan",
+    "Open ~/Projects/Buildreel2026/API/Client now",
     "make it a minute and keep step 7",
   ])("leaves ordinary text alone: %s", (input) => {
     expect(redact(input)).toBe(input);
