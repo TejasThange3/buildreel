@@ -152,6 +152,7 @@ describe("buildSteps", () => {
         prompt(2, "Use e.g. the existing parser. Then test it."),
         prompt(3, "Ask Dr. Smith to fix it. Then ship."),
         prompt(4, "Is it ready? Ship it!"),
+        prompt(4.5, "E.g. reuse the parser. Then test."),
       ],
       5,
       [],
@@ -163,6 +164,7 @@ describe("buildSteps", () => {
       "Use e.g. the existing parser.",
       "Ask Dr. Smith to fix it.",
       "Is it ready?",
+      "E.g. reuse the parser.",
     ]);
   });
 

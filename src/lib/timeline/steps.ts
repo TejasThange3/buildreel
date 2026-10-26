@@ -8,7 +8,7 @@ type Draft = {
 
 const TITLE_MAX = 48;
 // A sentence ends at . ! or ? before whitespace, except after common abbreviations.
-const SENTENCE_END = /(?<!\b(?:e\.g|i\.e|etc|vs|Dr|Mr|Mrs|Ms|St)\.)(?<=[.!?])\s+|\n/;
+const SENTENCE_END = /(?<!\b(?:e\.g|i\.e|etc|vs|dr|mr|mrs|ms|st)\.)(?<=[.!?])\s+|\n/i;
 
 // Fallback title, and the only one until LLM titles exist: the first sentence, cut at a word.
 // Lengths count code points (ellipsis included) so a cut never splits a surrogate pair.
