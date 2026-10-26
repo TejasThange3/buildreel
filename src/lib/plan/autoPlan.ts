@@ -115,14 +115,53 @@ function withEmphasis(plan: StepPlan, constraints: Constraints): StepPlan {
   return { ...plan, real: { ...plan.real, dur } };
 }
 
-export function planReel(steps: Step[], activity: ActivityTrack, constraints: Constraints): EDL {
+const INTRO_S = 2.5;
+const OUTRO_S = 3;
+
+function formatDuration(seconds: number): string {
+  if (seconds < 60) return `${Math.round(seconds)} s`;
+  const minutes = Math.round(seconds / 60);
+  return minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)} h ${minutes % 60} min`;
+}
+
+// All prompts and words count, including steps left out of the cut: the card is about the build.
+function statsText(steps: Step[], keptSteps: number, rawS: number, reelS: number): string {
+  const words = steps.reduce((sum, s) => sum + wordCount(s.prompt), 0);
+  return [
+    `${keptSteps} steps from ${steps.length} prompts, ${words} words dictated`,
+    `${formatDuration(rawS)} of recording in ${formatDuration(reelS)}`,
+  ].join("\n");
+}
+
+const card = (id: string, outDur: number, kind: "title" | "stats", text: string): Segment => ({
+  id,
+  mode: "card",
+  outDur,
+  overlay: { kind, text },
+});
+
+const sumSeconds = (segments: Segment[]) => segments.reduce((sum, s) => sum + s.outDur, 0);
+
+export function planReel(
+  steps: Step[],
+  activity: ActivityTrack,
+  constraints: Constraints,
+  durationS: number,
+): EDL {
   const kept = steps.filter((s) => !constraints.dropped.includes(s.index));
   const plans = fitToTarget(
     kept.map((s) => draftPlan(s, activity, constraints)),
-    constraints.targetS,
+    constraints.targetS - INTRO_S - OUTRO_S,
     importanceOf(kept),
     constraints.pinned,
   ).map((plan) => withEmphasis(plan, constraints));
-  const segments = plans.flatMap((plan) => stepSegments(plan, activity, constraints));
-  return { segments, totalS: segments.reduce((sum, s) => sum + s.outDur, 0) };
+  const body = plans.flatMap((plan) => stepSegments(plan, activity, constraints));
+  const totalS = INTRO_S + sumSeconds(body) + OUTRO_S;
+  const outro = constraints.outro ?? statsText(steps, plans.length, durationS, totalS);
+  const segments = [
+    card("intro", INTRO_S, "title", constraints.intro ?? "How I built it"),
+    ...body,
+    card("outro", OUTRO_S, "stats", outro),
+  ];
+  return { segments, totalS };
 }
