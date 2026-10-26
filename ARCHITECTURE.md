@@ -191,6 +191,9 @@ for each line:
   turnEnd = last assistant record before the next prompt or interrupt
      (interrupted turns write no end_turn; turns resumed by a subagent report run past it)
 merge all files: dedupe by uuid (first seen wins), sort by `at`
+  files sharing any uuid are one conversation: their sessionIds merge into one (smallest id),
+  because the desktop app rewrites sessionId in each copy and a turn must not split across ids
+  (cost: a side question in a branch file closes the main turn on the same clock)
 ```
 
 Redaction runs on every prompt and label before display or network: API key shapes (`sk-...`, `gsk_...`, `AIza...`, `ghp_...`, long hex/base64 tokens), emails, `.env`-style `KEY=value` lines. Replaced with `[redacted]`.
@@ -368,7 +371,7 @@ buildreel/
       schema.ts         ~80      zod schemas used by client and route handlers
     ui/Editor.tsx       ~80      'use client'; stage switch: import / sync / edit / export
     state/store.ts      ~120     zustand: project, constraints history, derived EDL
-    lib/log/readLogLines.ts    ~60   zod line schema, read + dedupe files
+    lib/log/readLogLines.ts    ~80   zod line schema, read + dedupe files, merge session ids
     lib/log/parseClaudeLog.ts  ~105  lines -> BuildEvent[], turn state per session
     lib/log/toolLabel.ts       ~30
     lib/log/redact.ts          ~85   credential shapes, secret fields, token vs path rules
