@@ -44,6 +44,21 @@ describe("redact", () => {
     ["many short base64 segments", "A1b2/C3d4/E5f6/G7h8/I9j0/K1l2/M3n4/O5p6/Q7r8", "[redacted]"],
     ["aws-style secret", "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY", "[redacted]"],
     ["word-like base64", "AbcdefghIJ1234567890/KlmnopqrST9876543210XYZ", "[redacted]"],
+    [
+      "slashed token before a full stop",
+      "Use Ab12Cd34Ef56Gh78/Iz90Kl12Mn34Op56Qr78St90.",
+      "Use [redacted].",
+    ],
+    [
+      "slashed token after a colon",
+      "value:Ab12Cd34Ef56Gh78/Iz90Kl12Mn34Op56Qr78St90",
+      "value:[redacted]",
+    ],
+    [
+      "token in a url path",
+      "https://localhost/Ab12Cd34Ef56Gh78/Iz90Kl12Mn34Op56Qr78St90",
+      "https:[redacted]",
+    ],
   ])("removes %s", (_, input, expected) => {
     expect(redact(input)).toBe(expected);
   });
@@ -78,6 +93,7 @@ describe("redact", () => {
     "see src/lib/Media2/CanvasSink/VideoSampleSink/Encoder4.ts",
     "C:/Projects/Buildreel2026/API/Client",
     "/Users/Tejas/Projects/Buildreel2026/Notes",
+    "~/Projects/Buildreel2026/Notes/Phase3Plan",
     "make it a minute and keep step 7",
   ])("leaves ordinary text alone: %s", (input) => {
     expect(redact(input)).toBe(input);

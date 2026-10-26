@@ -39,24 +39,23 @@ const LONG_HEX = /\b[0-9a-fA-F]{32,}\b/g;
 // Includes "/" and "+" so standard base64 is caught whole.
 const LONG_RUN = /[A-Za-z0-9+/_-]{32,}={0,2}/g;
 
-// A path segment is a word ("Projects", "Buildreel2026"), an all-lowercase name
-// ("node_modules", a uuid) or a short name like "AppData".
+// Path segments are words ("Projects"), lowercase names ("node_modules", uuids) or short names.
 const isPathSegment = (s: string) =>
   /[a-z]{4}|^[a-z0-9_-]*$/.test(s) || (s.length <= 8 && /[a-z]{2}/.test(s));
 
-// Segment shape alone cannot prove a path (valid base64 can look word-like), so a slashed run
-// needs path context: a drive or scheme colon or "~" before it, a file extension after it, or
-// a leading "/" with word-like segments.
+// Base64 can look word-like, so a slashed run is a path only with context: a drive letter ("C:",
+// not a URL scheme), a file extension (not a full stop), or a rooted "/" or "~/" path.
+const DRIVE = /(?:^|[^A-Za-z0-9])[A-Za-z]:$/;
+const EXTENSION = /^\.[A-Za-z0-9]{1,5}(?![A-Za-z0-9])/;
 function isPath(run: string, before: string, after: string): boolean {
-  if (before === ":" || before === "~" || after === ".") return true;
-  return run.startsWith("/") && run.split("/").every(isPathSegment);
+  if (DRIVE.test(before) || EXTENSION.test(after)) return true;
+  const rooted = run.startsWith("/") || before.endsWith("~");
+  return rooted && run.split("/").every(isPathSegment);
 }
 
-// Random tokens mix digits and both cases. "+" or "=" only occur in base64. Runs without "/"
-// (uuids, encoded project folders) are told apart by separators: at least one "-" or "_" per 10
-// characters, against about one per 30 in base64url. Character entropy was measured and does
-// not separate tokens from paths. Cost: a long camelCase identifier with a digit and no
-// separators, or a bare relative path with no extension, may show as [redacted].
+// Tokens mix digits and both cases; "+" and "=" only occur in base64. Without "/", uuids and
+// encoded folders have a "-" or "_" per 10 chars, base64url one per 30 (entropy does not separate
+// them). Cost: long digit-bearing camelCase names or bare relative paths may show as [redacted].
 function looksLikeToken(run: string, before: string, after: string): boolean {
   if (!/\d/.test(run) || !/[a-z]/.test(run) || !/[A-Z]/.test(run)) return false;
   if (/[+=]/.test(run)) return true;
@@ -78,6 +77,8 @@ export function redact(text: string): string {
     .replace(EMAIL, REDACTED)
     .replace(LONG_HEX, REDACTED)
     .replace(LONG_RUN, (run: string, at: number, whole: string) =>
-      looksLikeToken(run, whole.charAt(at - 1), whole.charAt(at + run.length)) ? REDACTED : run,
+      looksLikeToken(run, whole.slice(Math.max(0, at - 3), at), whole.slice(at + run.length))
+        ? REDACTED
+        : run,
     );
 }
