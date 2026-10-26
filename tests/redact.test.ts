@@ -25,6 +25,8 @@ describe("redact", () => {
     ],
     ["short password", "login with pwd=hunter2 now", "login with pwd=[redacted] now"],
     ["url credentials", "postgres://admin:s3cret@db.host/app", "postgres://[redacted]@db.host/app"],
+    ["base64 with slashes", "Use Ab12Cd34Ef56Gh78/Iz90Kl12Mn34Op56Qr78St90", "Use [redacted]"],
+    ["token with a lowercase run", "AbCDefghijKlM1234567890NopQrStUvWXYZ", "[redacted]"],
   ])("removes %s", (_, input, expected) => {
     expect(redact(input)).toBe(expected);
   });
@@ -40,7 +42,9 @@ describe("redact", () => {
     "the folder D--Hackathon-Buildreel---WemakeDevs holds the logs",
     "C--Users-TEJAS-Projects-WemakeDevs2026-Buildreel",
     "open WemakeDevs/d5193305-7c93-4b6b-bc05-50f14ade1a08.jsonl",
-    "rename useOAuth2TokenRefreshHandlerForGoogleDrive",
+    "AppData/Roaming/Claude/scratch-workspaces/9be1ce99-beba-46e5-8513-7e2362be1315",
+    "C--Users-TEJAS-AppData-Roaming-Claude-scratch-workspaces-9be1ce99",
+    "node_modules/mediabunny/dist/mediabunny.d.ts",
     "@ARCHITECTURE.md @BUILDREEL.md go through both",
     "session 3f9caaf6-1b2c-4d5e-8f90-123456789abc started",
     "NOTE = remember this",
