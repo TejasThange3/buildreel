@@ -119,7 +119,8 @@ const INTRO_S = 2.5;
 const OUTRO_S = 3;
 
 function formatDuration(seconds: number): string {
-  if (seconds < 60) return `${Math.round(seconds)} s`;
+  // Reels are usually 60 to 90 s, which read better as "90 s" than "2 min".
+  if (seconds < 120) return `${Math.round(seconds)} s`;
   const minutes = Math.round(seconds / 60);
   return minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)} h ${minutes % 60} min`;
 }
