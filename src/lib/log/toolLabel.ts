@@ -9,13 +9,15 @@ export const isReadTool = (name: string) => READ_TOOLS.has(name);
 
 function stringField(input: Record<string, unknown>, key: string): string | undefined {
   const value = input[key];
-  return typeof value === "string" && value.trim() ? value.trim() : undefined;
+  // Captions are one line: heredocs and multi-line commands collapse to single spaces.
+  const text = typeof value === "string" ? value.replace(/\s+/g, " ").trim() : "";
+  return text || undefined;
 }
 
 export function toolLabel(name: string, input: Record<string, unknown>): string {
   if (EDIT_TOOLS.has(name)) {
-    const path = stringField(input, "file_path") ?? stringField(input, "notebook_path") ?? "";
-    return `Edited ${path.split(/[\\/]/).pop()}`;
+    const path = stringField(input, "file_path") ?? stringField(input, "notebook_path");
+    return path ? `Edited ${path.split(/[\\/]/).pop()}` : "Edited a file";
   }
   if (SHELL_TOOLS.has(name)) {
     const what =

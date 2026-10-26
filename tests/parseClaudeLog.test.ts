@@ -120,6 +120,20 @@ describe("parseClaudeLogs", () => {
     expect(events.filter((e) => e.kind === "reply")).toHaveLength(1);
   });
 
+  it("keeps labels on one line and names edits without a path", () => {
+    const { events } = parse(
+      human(1, "go"),
+      assistant(2, [tool("PowerShell", { command: "git commit -m @'\nfeat: x\n'@" })]),
+      assistant(3, [tool("NotebookEdit", { notebook_path: "C:/nb/explore.ipynb" })]),
+      assistant(4, [tool("Write", {})]),
+    );
+    expect(events.flatMap((e) => (e.kind === "tool" ? [e.label] : []))).toEqual([
+      "Ran git commit -m @' feat: x '@",
+      "Edited explore.ipynb",
+      "Edited a file",
+    ]);
+  });
+
   it("ends a turn at its last assistant record, before the next prompt or interrupt", () => {
     const { events } = parse(
       human(1, "first"),
