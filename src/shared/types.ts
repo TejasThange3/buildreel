@@ -17,3 +17,14 @@ export type VideoProbe = { durationS: number; width: number; height: number; sta
 
 // t: seconds on the video's media timeline.
 export type AlignedEvent = BuildEvent & { t: number };
+
+// Times are seconds on the video timeline. Work runs [promptT, workEnd], review [workEnd, reviewEnd].
+export type Step = {
+  index: number; // 1-based, shown to the user and to the LLM
+  prompt: string;
+  title: string;
+  promptT: number;
+  workEnd: number;
+  reviewEnd: number;
+  tools: { t: number; label: string }[];
+};
