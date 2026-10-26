@@ -39,8 +39,8 @@ Only short, redacted text (step titles, prompt excerpts, the instruction) ever l
 |                     |         +--> [3 PROBE] --> duration, size,    |                         |
 |                     |                 |          recording start   |                         |
 |                     |                 v                            v                         |
-|                     |        [4 ACTIVITY WORKER]            [5 ALIGN] <-- manual nudge (SyncPanel)
-|                     |          frame diffs @ 2/s                   |                         |
+|                     |        [4 ACTIVITY]                   [5 ALIGN] <-- manual nudge (SyncPanel)
+|                     |          packet sizes @ 2/s                  |                         |
 |                     |                 |                            v                         |
 |                     |                 +----------------------> [6 STEPS]                     |
 |                     |                                              |                         |
@@ -64,10 +64,10 @@ Only short, redacted text (step titles, prompt excerpts, the instruction) ever l
 +============================|==================================================+
                              v
               LLM provider via OpenAI-compatible HTTP
-              (Groq or Gemini; key held as a Vercel environment variable)
+              (Groq openai/gpt-oss-20b, strict json_schema; key held as a Vercel environment variable)
 ```
 
-One Next.js (App Router) project holds both sides. `/` is a static landing page whose hero plays the sample reel (a pre-exported `reel.mp4`, plain `<video>`, no Mediabunny) and links to `/editor`. The editor page is a client component; Mediabunny and the activity worker are loaded client-only (dynamic import, no SSR). The only server code is the route handlers under `src/app/api/*`. The server never receives video.
+One Next.js (App Router) project holds both sides. `/` is a static landing page whose hero plays the sample reel (a pre-exported `reel.mp4`, plain `<video>`, no Mediabunny) and links to `/editor`. The editor page is a client component; Mediabunny is loaded client-only (dynamic import, no SSR). The only server code is the route handlers under `src/app/api/*`. The server never receives video.
 
 Design principle: the deterministic pipeline (stages 1-8, 10) produces a complete reel with zero network calls. The LLM only improves titles and turns spoken instructions into structured ops. If the LLM is down, the app still works.
 
@@ -80,7 +80,7 @@ Design principle: the deterministic pipeline (stages 1-8, 10) produces a complet
 | 1 | Import | dropped files | `File` refs, type-checked | `ui/DropZone.tsx` |
 | 2 | Parse + redact | `.jsonl` text | `BuildEvent[]` sorted by wall-clock | `lib/log/parseClaudeLog.ts`, `lib/log/redact.ts` |
 | 3 | Probe | video `File` | `{durationS, width, height, startedAt}` | `lib/media/probe.ts`, `lib/media/startTime.ts` |
-| 4 | Activity | video `File` | `ActivityTrack` (score per 0.5 s) | `lib/media/activity.worker.ts`, `lib/media/activity.ts` |
+| 4 | Activity | video `File` | `ActivityTrack` (score per 0.5 s) | `lib/media/activity.ts` |
 | 5 | Align | events, startedAt, offset | events with `videoT` (seconds) | `lib/timeline/align.ts` |
 | 6 | Steps | aligned events, activity | `Step[]` (prompt, work, review phases) | `lib/timeline/steps.ts` |
 | 7 | Plan | steps, activity, `Constraints` | `EDL` (ordered segments) | `lib/plan/autoPlan.ts`, `lib/plan/fit.ts` |
@@ -158,30 +158,37 @@ Why Constraints and not direct EDL edits: steering changes intent ("keep step 4"
 
 ### 6.1 Claude Code log parsing
 
-Location on Windows: `%USERPROFILE%\.claude\projects\<encoded-cwd>\<sessionId>.jsonl` (encoded-cwd replaces `:` `\` `/` with `-`, e.g. `D--projects-buildreel`). Verify on Day 1 against a real file.
+Location: `<config>\projects\<encoded-cwd>\<sessionId>.jsonl`, where `<config>` is `CLAUDE_CONFIG_DIR` if set (Tejas: `D:\ClaudeData`), else `%USERPROFILE%\.claude`. encoded-cwd replaces every non-alphanumeric character with `-`, e.g. `D--Hackathon-Buildreel---WemakeDevs`. The user picks the files; the app never guesses the path.
 
-Each line is a JSON object. Expected fields: `type`, `timestamp` (ISO, UTC), `sessionId`, `uuid`, `parentUuid`, `isSidechain`, `isMeta`, `message { role, content }`.
+Verified on Day 1 against claude-desktop v2.1.308:
+- Each line is a JSON object. Only `type: 'user'` and `type: 'assistant'` matter. Many other types exist (`attachment`, `queue-operation`, `api-request-blob`, `file-history-snapshot`, `custom-title`, ...) and are ignored. `api-request-blob` repeats message content, so it must never be read as a prompt.
+- Fields used: `type`, `timestamp` (ISO, UTC), `uuid`, `sessionId`, `isSidechain`, `isMeta`, `origin`, `message { role, content, stop_reason }`.
+- The desktop app writes a new file per turn that repeats the whole conversation with original `uuid`s and timestamps; side questions create short branch files. Files overlap heavily.
+- Subagent reports and task notifications are stored as `queue-operation` and `attachment` records, never as `user` prompts.
+- `system` records with `subtype: 'stop_hook_summary'` are written when a turn ends.
 
 ```
 for each line:
   skip if JSON.parse fails (count it, show "N lines skipped")
+  skip unless type is 'user' or 'assistant'
   skip if isMeta or isSidechain
   type 'user':
-     content is string                       -> prompt (unless it is command/system noise)
      content array has tool_result blocks    -> skip (it is tool output, not you)
-     content array with text blocks          -> prompt (join texts)
+     origin present                          -> prompt only if origin.kind == 'human'
+     origin absent (older/CLI logs)          -> content string or text blocks -> prompt
      text == "[Request interrupted by user]" -> interrupt
      noise filter: starts with "<command-name>", "<local-command-stdout>", "Caveat:" -> skip
+     cleanup: unwrap <pasted_content ...> tags, @"C:\path\file.md" -> @file.md
   type 'assistant':
      tool_use blocks -> tool events, label by tool:
         Edit/Write/MultiEdit -> "Edited <basename(file_path)>"
         Bash                 -> "Ran <description || first 40 chars of command>"
         Read/Grep/Glob       -> aggregated per turn: "Read 6 files"
         Task/Agent           -> "Started a subagent"
-        others               -> tool name
+        others               -> tool name (mcp__server__tool -> tool)
      text blocks -> reply event
-  turnEnd = last assistant/tool event before the next prompt
-merge all sessions, sort by `at`
+     stop_reason 'end_turn' -> turnEnd
+merge all files: dedupe by uuid (first seen wins), sort by `at`
 ```
 
 Redaction runs on every prompt and label before display or network: API key shapes (`sk-...`, `gsk_...`, `AIza...`, `ghp_...`, long hex/base64 tokens), emails, `.env`-style `KEY=value` lines. Replaced with `[redacted]`.
@@ -197,14 +204,16 @@ Redaction runs on every prompt and label before display or network: API key shap
 ```
 Sample project ships a precomputed offset in `project.json`, so timezones never matter for judges.
 
-### 6.3 Activity track (worker)
+### 6.3 Activity track (encoded packet sizes)
 
 ```
-sample a 160 px wide grayscale frame every 0.5 s
-score[i] = mean(|frame[i] - frame[i-1]|) / 255
+read video packet metadata only (Mediabunny EncodedPacketSink, metadataOnly: no decode)
+bin[i] = sum of byteLength of non-key packets with timestamp in [i*0.5, (i+1)*0.5)
 smooth with a 3-sample moving average, normalise to 0..1
 ```
-Used to (a) trim static review time, (b) rank steps by "something visibly happened", (c) Tier 3 zoom box.
+Why packets and not pixels: OBS writes a keyframe only every ~8.3 s, so sampling decoded frames every 0.5 s decodes nearly every frame (about 3.4 min for a 1 h 1080p recording). The Day 1 spike on a real OBS recording: packet scan of 16 min took 0.1 s; against a pixel-diff score, Pearson 0.82, Spearman 0.83, and the top 24 active bins agreed 24/24. Key packets are skipped because their size reflects the GOP boundary, not screen change. Risk: a strict CBR encoder with filler data would flatten the signal; the pixel method then becomes the fallback.
+
+Used to (a) trim static review time, (b) rank steps by "something visibly happened". The Tier 3 zoom box needs pixels and uses a decoding worker (`lib/media/zoom.worker.ts`), sampled only inside the chosen real segments.
 
 ### 6.4 Step building
 
@@ -299,7 +308,7 @@ Judge        App                     /public/sample            /api/titles
 
 ### 7.2 User imports their own build
 ```
-User drops mp4 + jsonl -> parse+redact -> probe -> worker activity (progress bar)
+User drops mp4 + jsonl -> parse+redact -> probe -> activity (packet scan, under 1 s)
 -> auto start time -> SyncPanel shows prompt 1 marker -> user confirms or nudges
 -> steps -> plan(targetS 90) -> preview
 ```
@@ -358,8 +367,7 @@ buildreel/
     lib/log/redact.ts          ~40
     lib/media/probe.ts         ~50
     lib/media/startTime.ts     ~40
-    lib/media/activity.ts      ~40   worker wrapper
-    lib/media/activity.worker.ts ~70
+    lib/media/activity.ts      ~50   packet-size activity, no decode
     lib/timeline/align.ts      ~50
     lib/timeline/steps.ts      ~100
     lib/plan/autoPlan.ts       ~130
@@ -434,7 +442,7 @@ live: https://buildreel.vercel.app  (no sign-in; landing plays the sample reel, 
 | Log covers more than the recording | out-of-range steps dropped, count shown |
 | Browser lacks WebCodecs encode | clear message: use Chrome or Edge; preview still works |
 | Container not decodable (.mkv) | message: remux in OBS (File > Remux Recordings) |
-| Very long recording (> 60 min) | activity sampled at 1/s, progress shown |
+| Very long recording (> 60 min) | packet scan stays fast; export shows progress and cancel |
 
 ---
 
@@ -444,6 +452,12 @@ live: https://buildreel.vercel.app  (no sign-in; landing plays the sample reel, 
 2. Mediabunny: read OBS mp4 (and mkv), random + sequential frame access speed, H.264 encode, audio passthrough. Read current docs; do not code from memory.
 3. Current LLM model IDs and free-tier limits (Groq / Gemini OpenAI-compatible endpoints, JSON mode).
 4. Next.js + Vercel: client-only loading of Mediabunny and the worker under the current Next.js version, route handler body limit, Upstash rate-limit setup, sample asset size and load time.
+
+Results (26 Oct, Gate A):
+1. Log shape: see 6.1.
+2. Mediabunny 1.62.1 on a live OBS hybrid MP4 (1080p30 H.264, AAC 48 kHz): probe 103 ms; activity via packets, see 6.3; H.264 export with overlay 18.6 fps at 1080p; audio packets copied for one segment only give a valid MP4 with an audio gap (ffprobe/ffmpeg decode clean). VLC playback still to check in Phase 7.
+3. Groq `openai/gpt-oss-20b` supports strict `json_schema`; listed limits 30 RPM, 1K RPD, 8K TPM (confirm in the Groq console). Fallback `llama-3.3-70b-versatile` with `json_object`. Gemini free tier trains on inputs, so not the default.
+4. Next.js 16.4: `ssr: false` only inside a client component; `next lint` removed (use `eslint`). Vercel Hobby: 4.5 MB function body, 300 s duration, 100 GB/month transfer, so a 20 MB sample in `/public` is fine. Upstash `Redis.fromEnv()` reads `UPSTASH_REDIS_REST_*`; the Vercel integration may inject `KV_REST_API_*`, check after connecting.
 
 ---
 

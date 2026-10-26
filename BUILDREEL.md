@@ -220,7 +220,7 @@ Phase 2 - media
 19. feat(media): infer recording start from filename timestamp
 20. feat(media): fall back to last-modified minus duration
 21. test(media): cover filename timestamp parsing
-22. feat(media): sample downscaled frames in a worker
+22. feat(media): scan video packet sizes without decoding
 23. feat(media): compute smoothed activity score per half second
 
 Phase 3 - alignment and steps
