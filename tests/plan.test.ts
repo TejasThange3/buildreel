@@ -178,6 +178,10 @@ describe("bestWindow", () => {
     expect(start).toBeLessThan(37);
   });
 
+  it("keeps the earliest of equal windows despite float noise", () => {
+    expect(bestWindow(new Array<number>(200).fill(0.2), 0.17, 99.93, 3.13).start).toBe(0.17);
+  });
+
   it("matches a fine brute-force scan", () => {
     for (let trial = 0; trial < 50; trial++) {
       const activity = Array.from(

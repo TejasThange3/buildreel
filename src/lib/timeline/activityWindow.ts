@@ -15,7 +15,10 @@ export function meanActivity(activity: ActivityTrack, from: number, to: number):
 // The `length`-second window inside [from, to] with the most screen change. Activity is constant
 // within a bin, so the score is piecewise linear in the start, with breaks where the window's
 // start or end meets a bin boundary; only those starts (plus the two ends) need trying. They are
-// tried in order and the earliest wins ties, so the result is deterministic.
+// tried in order and the earliest wins ties, so the result is deterministic. A later start must
+// beat the best by more than float noise, or equal windows would drift to a later start.
+const TIE = 1e-9;
+
 export function bestWindow(
   activity: ActivityTrack,
   from: number,
@@ -34,7 +37,7 @@ export function bestWindow(
   let best = { start: from, activity: -1 };
   for (const start of starts.sort((a, b) => a - b)) {
     const score = meanActivity(activity, start, start + length);
-    if (score > best.activity) best = { start, activity: score };
+    if (score > best.activity + TIE) best = { start, activity: score };
   }
   return best;
 }
