@@ -1,4 +1,4 @@
-import { ALL_FORMATS, BlobSource, Input } from "mediabunny";
+import { ALL_FORMATS, BlobSource, Input, UnsupportedInputFormatError } from "mediabunny";
 import type { VideoProbe } from "@/shared/types";
 import { recordingStart } from "./startTime";
 
@@ -7,10 +7,19 @@ export function openVideo(file: File): Input<BlobSource> {
   return new Input({ formats: ALL_FORMATS, source: new BlobSource(file) });
 }
 
+async function primaryVideoTrack(input: Input<BlobSource>, name: string) {
+  try {
+    return await input.getPrimaryVideoTrack();
+  } catch (error) {
+    if (!(error instanceof UnsupportedInputFormatError)) throw error;
+    throw new Error(`${name} is not a video this app can read. Record MP4 or MKV in OBS.`);
+  }
+}
+
 export async function probeVideo(file: File): Promise<VideoProbe> {
   const input = openVideo(file);
   try {
-    const track = await input.getPrimaryVideoTrack();
+    const track = await primaryVideoTrack(input, file.name);
     if (!track) throw new Error(`${file.name} has no video track.`);
     if (!(await track.canDecode())) {
       throw new Error(
