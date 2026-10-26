@@ -30,6 +30,37 @@ describe("alignment on the real build", () => {
     const plain = alignEvents(events, recording1.startedAt, 0);
     expect(nudged.every((e, i) => Math.abs(e.t - (plain[i]?.t ?? 0) + 2.4) < 1e-9)).toBe(true);
   });
+
+  it("keeps a turn whole when its copies carry different session ids", () => {
+    // File A holds only the prompt; file B repeats it under its own id and holds the work.
+    const line = (o: object) => JSON.stringify({ isSidechain: false, ...o });
+    const at = (s: number) => `2026-10-26T09:00:0${s}Z`;
+    const human = (uuid: string, sessionId: string, s: number, content: string) =>
+      line({
+        type: "user",
+        uuid,
+        sessionId,
+        timestamp: at(s),
+        origin: { kind: "human" },
+        message: { content },
+      });
+    const work = line({
+      type: "assistant",
+      uuid: "t",
+      sessionId: "B",
+      timestamp: at(1),
+      message: { content: [{ type: "tool_use", name: "Bash", input: { description: "work" } }] },
+    });
+    const parsed = parseClaudeLogs([
+      human("p", "A", 0, "first"),
+      [human("p", "B", 0, "first"), work, human("q", "B", 2, "second")].join("\n"),
+    ]);
+    const { steps } = buildSteps(alignEvents(parsed.events, Date.parse(at(0)), 0), 10, []);
+    expect(steps.map((s) => [s.prompt, s.workEnd, s.tools.length])).toEqual([
+      ["first", 1, 1],
+      ["second", 2, 0],
+    ]);
+  });
 });
 
 const prompt = (t: number, text: string, sessionId = "s1"): AlignedEvent => ({

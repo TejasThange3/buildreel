@@ -29,14 +29,11 @@ describe("real desktop session", () => {
       "You can start with phase zero. Y",
       "Okay, you can continue with phas",
     ]);
-    expect(prompts.map((p) => p.sessionId.slice(0, 8))).toEqual([
-      "d5193305",
-      "d5193305",
-      "d5193305",
-      "02e5f2db",
-      "d5193305",
-      "d5193305",
-    ]);
+  });
+
+  it("treats the main file and its side-question branch as one conversation", () => {
+    // They share three copied prompts under different session ids; the smaller id wins.
+    expect(new Set(events.map((e) => e.sessionId.slice(0, 8)))).toEqual(new Set(["02e5f2db"]));
   });
 
   it("closes one turn per prompt", () => {

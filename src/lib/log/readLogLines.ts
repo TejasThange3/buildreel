@@ -34,30 +34,47 @@ function parseJson(raw: string): unknown {
   }
 }
 
-// The desktop app writes a new file per turn that repeats the whole conversation, and side
-// questions branch into short files, so the same uuid appears in many files.
-// A bad line repeated in every per-turn file is still one bad line, so they are counted by content.
+// The desktop app rewrites sessionId in every copy, so session ids that share any uuid are one
+// conversation and merge into the smallest id; otherwise a turn could split across ids.
+function mergedSessions(idsByUuid: Map<string, Set<string>>): (id: string) => string {
+  const parent = new Map<string, string>();
+  const root = (id: string): string => {
+    const up = parent.get(id);
+    return up === undefined ? id : root(up);
+  };
+  for (const ids of idsByUuid.values()) {
+    const [first, ...rest] = [...ids].map(root).sort();
+    if (first === undefined) continue;
+    for (const id of rest) if (id !== first) parent.set(id, first);
+  }
+  return root;
+}
+
+// Per-turn and branch files repeat history, so lines dedupe by uuid and bad lines by content.
 export function readLogLines(files: string[]): { lines: LogLine[]; skippedLines: number } {
   const byUuid = new Map<string, LogLine>();
+  const idsByUuid = new Map<string, Set<string>>();
   const skipped = new Set<string>();
   for (const file of files) {
     for (const raw of file.split("\n")) {
       if (!raw.trim()) continue;
       const json = parseJson(raw);
       const kind = lineType.safeParse(json);
-      if (!kind.success) {
+      // Other record types (attachments, queue operations, request blobs) carry no build events.
+      if (kind.success && kind.data.type !== "user" && kind.data.type !== "assistant") continue;
+      const line = logLine.safeParse(json);
+      if (!line.success) {
         skipped.add(raw);
         continue;
       }
-      // Dozens of other record types (attachments, queue operations, request blobs) carry no build events.
-      if (kind.data.type !== "user" && kind.data.type !== "assistant") continue;
-      const line = logLine.safeParse(json);
-      if (!line.success) skipped.add(raw);
-      else if (!byUuid.has(line.data.uuid)) byUuid.set(line.data.uuid, line.data);
+      const { uuid, sessionId } = line.data;
+      idsByUuid.set(uuid, (idsByUuid.get(uuid) ?? new Set()).add(sessionId));
+      if (!byUuid.has(uuid)) byUuid.set(uuid, line.data);
     }
   }
-  const lines = [...byUuid.values()].sort(
-    (a, b) => Date.parse(a.timestamp) - Date.parse(b.timestamp),
-  );
+  const session = mergedSessions(idsByUuid);
+  const lines = [...byUuid.values()]
+    .map((line) => ({ ...line, sessionId: session(line.sessionId) }))
+    .sort((a, b) => Date.parse(a.timestamp) - Date.parse(b.timestamp));
   return { lines, skippedLines: skipped.size };
 }
