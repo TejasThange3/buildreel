@@ -33,8 +33,10 @@ function parseJson(raw: string): unknown {
   }
 }
 
+// The desktop app writes a new file per turn that repeats the whole conversation, and side
+// questions branch into short files, so the same uuid appears in many files.
 export function readLogLines(files: string[]): { lines: LogLine[]; skippedLines: number } {
-  const lines: LogLine[] = [];
+  const byUuid = new Map<string, LogLine>();
   let skippedLines = 0;
   for (const file of files) {
     for (const raw of file.split("\n")) {
@@ -48,9 +50,12 @@ export function readLogLines(files: string[]): { lines: LogLine[]; skippedLines:
       // Dozens of other record types (attachments, queue operations, request blobs) carry no build events.
       if (kind.data.type !== "user" && kind.data.type !== "assistant") continue;
       const line = logLine.safeParse(json);
-      if (line.success) lines.push(line.data);
-      else skippedLines++;
+      if (!line.success) skippedLines++;
+      else if (!byUuid.has(line.data.uuid)) byUuid.set(line.data.uuid, line.data);
     }
   }
+  const lines = [...byUuid.values()].sort(
+    (a, b) => Date.parse(a.timestamp) - Date.parse(b.timestamp),
+  );
   return { lines, skippedLines };
 }
