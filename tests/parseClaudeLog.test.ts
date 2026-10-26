@@ -155,6 +155,25 @@ describe("parseClaudeLogs", () => {
     ]);
   });
 
+  it("handles an interrupt before any reply and restarts read folding after it", () => {
+    const { events } = parse(
+      human(1, "first"),
+      user(2, [text("[Request interrupted by user]")]),
+      assistant(3, [tool("Read", { file_path: "a.ts" })]),
+      user(4, [text("[Request interrupted by user]")]),
+      assistant(5, [tool("Read", { file_path: "b.ts" })]),
+    );
+    expect(events.map((e) => (e.kind === "tool" ? e.label : e.kind))).toEqual([
+      "prompt",
+      "interrupt",
+      "Read 1 file",
+      "turnEnd",
+      "interrupt",
+      "Read 1 file",
+      "turnEnd",
+    ]);
+  });
+
   it("merges overlapping files by uuid and sorts by time", () => {
     const p1 = human(1, "shared prompt");
     const p2 = human(2, "main branch prompt");
