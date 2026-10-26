@@ -4,8 +4,16 @@ const REDACTED = "[redacted]";
 // The variable name is kept so the caption still says what was set.
 const ENV_LINE = /^([ \t]*(?:export[ \t]+)?[A-Z][A-Z0-9_]{2,}=)(?!=)\S.*$/gm;
 // Inline assignments of secret-named fields: GROQ_API_KEY=..., api_key: "...", "apiKey": "...".
-const SECRET_FIELD =
-  /\b([A-Za-z0-9_]*(?:key|token|secret|password)["']?[ \t]*[:=][ \t]*["']?)[^\s"',;]{8,}/gi;
+// Names are credential words only, so "key: ArrowRight" and "primaryKey: customerId" survive.
+const SECRET_NAME =
+  "[A-Za-z0-9_]*(?:api[_-]?key|access[_-]?key|secret[_-]?key|private[_-]?key|secret|token|passw(?:or)?d|pwd|credentials?)";
+// A quoted value is removed whole, since passphrases contain spaces.
+const SECRET_QUOTED = new RegExp(
+  `\\b(${SECRET_NAME}["']?[ \\t]*[:=][ \\t]*)(["'])[^"'\\n]+\\2`,
+  "gi",
+);
+const SECRET_FIELD = new RegExp(`\\b(${SECRET_NAME}["']?[ \\t]*[:=][ \\t]*)[^\\s"',;]{6,}`, "gi");
+const URL_CREDENTIALS = /\b([a-z][a-z0-9+.-]*:\/\/)[^\s/:@]+:[^\s/@]+@/gi;
 const KEY_SHAPES = [
   /\bsk-[A-Za-z0-9_-]{20,}/g,
   /\bsk_(?:live|test)_[A-Za-z0-9]{16,}/g,
@@ -28,7 +36,11 @@ function looksLikeToken(run: string): boolean {
 }
 
 export function redact(text: string): string {
-  let out = text.replace(ENV_LINE, `$1${REDACTED}`).replace(SECRET_FIELD, `$1${REDACTED}`);
+  let out = text
+    .replace(ENV_LINE, `$1${REDACTED}`)
+    .replace(SECRET_QUOTED, `$1$2${REDACTED}$2`)
+    .replace(SECRET_FIELD, `$1${REDACTED}`)
+    .replace(URL_CREDENTIALS, `$1${REDACTED}@`);
   for (const shape of KEY_SHAPES) out = out.replace(shape, REDACTED);
   return out
     .replace(EMAIL, REDACTED)

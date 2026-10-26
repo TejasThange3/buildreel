@@ -18,6 +18,13 @@ describe("redact", () => {
     ["inline assignment", "set GROQ_API_KEY=abc123secret now", "set GROQ_API_KEY=[redacted] now"],
     ["yaml field", "api_key: abcdefgh12345", "api_key: [redacted]"],
     ["json field", '{"apiKey": "AbCd1234efgh"}', '{"apiKey": "[redacted]"}'],
+    [
+      "quoted passphrase",
+      'please use password="correct horse battery staple"',
+      'please use password="[redacted]"',
+    ],
+    ["short password", "login with pwd=hunter2 now", "login with pwd=[redacted] now"],
+    ["url credentials", "postgres://admin:s3cret@db.host/app", "postgres://[redacted]@db.host/app"],
   ])("removes %s", (_, input, expected) => {
     expect(redact(input)).toBe(expected);
   });
@@ -40,6 +47,9 @@ describe("redact", () => {
     "MAX_SIZE == 5",
     "FOO =\nnext prose line",
     "press the key: enter",
+    "Use key: ArrowRight for navigation",
+    "Use primaryKey: customerId when joining",
+    "a token: of thanks",
     "make it a minute and keep step 7",
   ])("leaves ordinary text alone: %s", (input) => {
     expect(redact(input)).toBe(input);
