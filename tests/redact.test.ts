@@ -43,6 +43,7 @@ describe("redact", () => {
     ["token with a lowercase run", "AbCDefghijKlM1234567890NopQrStUvWXYZ", "[redacted]"],
     ["many short base64 segments", "A1b2/C3d4/E5f6/G7h8/I9j0/K1l2/M3n4/O5p6/Q7r8", "[redacted]"],
     ["aws-style secret", "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY", "[redacted]"],
+    ["word-like base64", "AbcdefghIJ1234567890/KlmnopqrST9876543210XYZ", "[redacted]"],
   ])("removes %s", (_, input, expected) => {
     expect(redact(input)).toBe(expected);
   });
@@ -58,7 +59,7 @@ describe("redact", () => {
     "the folder D--Hackathon-Buildreel---WemakeDevs holds the logs",
     "C--Users-TEJAS-Projects-WemakeDevs2026-Buildreel",
     "open WemakeDevs/d5193305-7c93-4b6b-bc05-50f14ade1a08.jsonl",
-    "AppData/Roaming/Claude/scratch-workspaces/9be1ce99-beba-46e5-8513-7e2362be1315",
+    "C:/Users/user/AppData/Roaming/Claude/scratch-workspaces/9be1ce99-beba-46e5-8513-7e2362be1315",
     "C--Users-TEJAS-AppData-Roaming-Claude-scratch-workspaces-9be1ce99",
     "node_modules/mediabunny/dist/mediabunny.d.ts",
     "@ARCHITECTURE.md @BUILDREEL.md go through both",
@@ -74,7 +75,9 @@ describe("redact", () => {
     'const token = "id";',
     "https://example.com?time=12:30@alice",
     "C:/Projects/Buildreel2026/Architecture",
-    "see src/lib/Media2/CanvasSink/VideoSampleSink/Encoder4",
+    "see src/lib/Media2/CanvasSink/VideoSampleSink/Encoder4.ts",
+    "C:/Projects/Buildreel2026/API/Client",
+    "/Users/Tejas/Projects/Buildreel2026/Notes",
     "make it a minute and keep step 7",
   ])("leaves ordinary text alone: %s", (input) => {
     expect(redact(input)).toBe(input);
