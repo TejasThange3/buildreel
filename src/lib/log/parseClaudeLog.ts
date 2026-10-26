@@ -1,4 +1,5 @@
 import type { BuildEvent, ParsedLog } from "@/shared/types";
+import { redact } from "./redact";
 import { readLogLines, type LogLine } from "./readLogLines";
 import { isHiddenTool, isReadTool, readLabel, toolLabel } from "./toolLabel";
 
@@ -38,7 +39,7 @@ function userEvent(line: LogLine): BuildEvent | undefined {
   // Older and CLI logs have no origin; there, any text the user record carries is the prompt.
   if (line.origin && line.origin.kind !== "human") return undefined;
   if (NOISE_PREFIXES.some((p) => raw.startsWith(p))) return undefined;
-  const text = cleanPrompt(raw);
+  const text = redact(cleanPrompt(raw));
   if (!text) return undefined;
   return { kind: "prompt", at, text, sessionId: line.sessionId };
 }
@@ -72,7 +73,7 @@ export function parseClaudeLogs(files: string[]): ParsedLog {
       if ("text" in b && b.text.trim()) events.push({ kind: "reply", at });
       if (!("name" in b) || isHiddenTool(b.name)) continue;
       if (!isReadTool(b.name)) {
-        events.push({ kind: "tool", at, tool: b.name, label: toolLabel(b.name, b.input) });
+        events.push({ kind: "tool", at, tool: b.name, label: redact(toolLabel(b.name, b.input)) });
       } else if (reads) {
         reads.count++;
         reads.event.label = readLabel(reads.count);
