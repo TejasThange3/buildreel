@@ -137,6 +137,8 @@ describe("planReel", () => {
     ).toBeUndefined();
     const emphasized = planReel(one, still, constraints({ targetS: 300, emphasis: { 1: 2 } }), 100);
     expect(part(emphasized, "1-real")?.outDur).toBeGreaterThan(0);
+    const zero = planReel(one, still, constraints({ targetS: 300, emphasis: { 1: 0 } }), 100);
+    expect(part(zero, "1-real")).toBeUndefined();
   });
 
   it("writes build stats on the outro and honours steered card text", () => {

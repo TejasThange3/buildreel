@@ -48,7 +48,7 @@ function draftPlan(step: Step, activity: ActivityTrack, constraints: Constraints
     step,
     hold: holdPart(step.prompt),
     fast: fastPart(step, constraints.speed[step.index]),
-    real: realPart(step, activity, step.index in constraints.emphasis),
+    real: realPart(step, activity, (constraints.emphasis[step.index] ?? 0) > 0),
   };
 }
 
