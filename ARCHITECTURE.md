@@ -188,7 +188,8 @@ for each line:
         Task/Agent           -> "Started a subagent"
         others               -> tool name (mcp__server__tool -> tool)
      text blocks -> reply event
-     stop_reason 'end_turn' -> turnEnd
+  turnEnd = last assistant record before the next prompt or interrupt
+     (interrupted turns write no end_turn; turns resumed by a subagent report run past it)
 merge all files: dedupe by uuid (first seen wins), sort by `at`
 ```
 
