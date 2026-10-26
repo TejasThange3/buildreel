@@ -33,3 +33,31 @@ export type Step = {
   tools: { t: number; label: string }[];
   reviewActivity: number; // 0..1 mean activity during review
 };
+
+// Tool chips keep their source time so a renderer can show each one as the fast-forward passes it.
+export type Overlay =
+  { kind: "prompt" | "title" | "stats"; text: string } | { kind: "tools"; tools: Step["tools"] };
+
+// One stretch of the output reel. Source times are seconds on the video timeline; a "cut" never
+// appears, because the planner simply leaves that footage out.
+export type Segment = { id: string; step?: number; outDur: number; overlay?: Overlay } & (
+  | { mode: "card" }
+  | { mode: "hold"; srcT: number }
+  | { mode: "real"; src: [number, number] }
+  | { mode: "fast"; src: [number, number]; speed: number }
+);
+
+export type EDL = { segments: Segment[]; totalS: number };
+
+// The editing intent. Steering changes Constraints and the planner recomputes the EDL from them,
+// so every edit stays within the target and undo is a stack of Constraints.
+export type Constraints = {
+  targetS: number;
+  pinned: number[];
+  dropped: number[];
+  emphasis: Record<number, number>; // step -> extra real-time seconds
+  speed: Record<number, number>; // step -> forced fast-forward factor
+  titles: Record<number, string>;
+  intro?: string;
+  outro?: string;
+};
