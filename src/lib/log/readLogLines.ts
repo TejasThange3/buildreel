@@ -35,27 +35,28 @@ function parseJson(raw: string): unknown {
 
 // The desktop app writes a new file per turn that repeats the whole conversation, and side
 // questions branch into short files, so the same uuid appears in many files.
+// A bad line repeated in every per-turn file is still one bad line, so they are counted by content.
 export function readLogLines(files: string[]): { lines: LogLine[]; skippedLines: number } {
   const byUuid = new Map<string, LogLine>();
-  let skippedLines = 0;
+  const skipped = new Set<string>();
   for (const file of files) {
     for (const raw of file.split("\n")) {
       if (!raw.trim()) continue;
       const json = parseJson(raw);
       const kind = lineType.safeParse(json);
       if (!kind.success) {
-        skippedLines++;
+        skipped.add(raw);
         continue;
       }
       // Dozens of other record types (attachments, queue operations, request blobs) carry no build events.
       if (kind.data.type !== "user" && kind.data.type !== "assistant") continue;
       const line = logLine.safeParse(json);
-      if (!line.success) skippedLines++;
+      if (!line.success) skipped.add(raw);
       else if (!byUuid.has(line.data.uuid)) byUuid.set(line.data.uuid, line.data);
     }
   }
   const lines = [...byUuid.values()].sort(
     (a, b) => Date.parse(a.timestamp) - Date.parse(b.timestamp),
   );
-  return { lines, skippedLines };
+  return { lines, skippedLines: skipped.size };
 }

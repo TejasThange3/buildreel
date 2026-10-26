@@ -48,6 +48,11 @@ describe("parseClaudeLogs", () => {
     expect(events.filter((e) => e.kind === "prompt")).toHaveLength(1);
   });
 
+  it("counts a bad line repeated across overlapping files once", () => {
+    const file = ["{not json", human(1, "prompt")].join("\n");
+    expect(parseClaudeLogs([file, file, file]).skippedLines).toBe(1);
+  });
+
   it("keeps human prompts and drops tool results, meta, sidechain and non-human origins", () => {
     const { events } = parse(
       human(1, "add a parser"),
