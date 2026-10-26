@@ -61,10 +61,27 @@ function userText(line: LogLine): string | undefined {
     .trim();
 }
 
+// Slash commands and their output are logged as user text but are not something the user asked for.
+const NOISE_PREFIXES = [
+  "<command-name>",
+  "<command-message>",
+  "<local-command-stdout>",
+  "<local-command-caveat>",
+];
+
+function cleanPrompt(text: string): string {
+  return text
+    .replace(/<\/?pasted_content[^>]*>/g, "")
+    .replace(/@"[^"]*?([^"\\/]+)"/g, "@$1")
+    .trim();
+}
+
 function promptEvent(line: LogLine): BuildEvent | undefined {
   // Older and CLI logs have no origin; there, any text the user record carries is the prompt.
   if (line.origin && line.origin.kind !== "human") return undefined;
-  const text = userText(line);
+  const raw = userText(line);
+  if (!raw || NOISE_PREFIXES.some((p) => raw.startsWith(p))) return undefined;
+  const text = cleanPrompt(raw);
   if (!text) return undefined;
   return { kind: "prompt", at: Date.parse(line.timestamp), text, sessionId: line.sessionId };
 }
