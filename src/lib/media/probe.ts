@@ -1,5 +1,6 @@
 import { ALL_FORMATS, BlobSource, Input } from "mediabunny";
 import type { VideoProbe } from "@/shared/types";
+import { recordingStart } from "./startTime";
 
 // BlobSource reads byte ranges on demand, so an hour-long recording is never loaded whole.
 export function openVideo(file: File): Input<BlobSource> {
@@ -16,10 +17,12 @@ export async function probeVideo(file: File): Promise<VideoProbe> {
         `This browser cannot decode the ${track.codec ?? "unknown"} video in ${file.name}. Use Chrome or Edge.`,
       );
     }
+    const durationS = await input.computeDuration();
     return {
-      durationS: await input.computeDuration(),
+      durationS,
       width: await track.getDisplayWidth(),
       height: await track.getDisplayHeight(),
+      startedAt: recordingStart(file, durationS),
     };
   } finally {
     input.dispose();

@@ -8,4 +8,5 @@ export type BuildEvent =
 
 export type ParsedLog = { events: BuildEvent[]; skippedLines: number };
 
-export type VideoProbe = { durationS: number; width: number; height: number };
+// startedAt: epoch ms of the first frame, the same clock as BuildEvent.at.
+export type VideoProbe = { durationS: number; width: number; height: number; startedAt: number };
