@@ -211,7 +211,8 @@ Sample project ships a precomputed offset in `project.json`, so timezones never 
 ```
 read video packet metadata only (Mediabunny EncodedPacketSink, metadataOnly: no decode)
 bin[i] = sum of byteLength of non-key packets with timestamp in [i*0.5, (i+1)*0.5)
-smooth with a 3-sample moving average, normalise to 0..1
+smooth with a 3-sample moving average
+score = clamp((bin - p10) / (p99 - p10), 0, 1)   p10 = static-screen floor, p99 = busy ceiling
 ```
 Why packets and not pixels: OBS writes a keyframe only every ~8.3 s, so sampling decoded frames every 0.5 s decodes nearly every frame (about 3.4 min for a 1 h 1080p recording). The Day 1 spike on a real OBS recording: packet scan of 16 min took 0.1 s; against a pixel-diff score, Pearson 0.82, Spearman 0.83, and the top 24 active bins agreed 24/24. Key packets are skipped because their size reflects the GOP boundary, not screen change. Risk: a strict CBR encoder with filler data would flatten the signal; the pixel method then becomes the fallback.
 
