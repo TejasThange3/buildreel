@@ -199,3 +199,25 @@ describe("bestWindow", () => {
     }
   });
 });
+
+describe("planReel edge cases", () => {
+  it("skips fast-forward with no work and real time with no review", () => {
+    const idle: Step = { ...step(1, 10, 0, 0.5), workEnd: 0, reviewEnd: 0 };
+    expect(
+      planReel([idle], busy, constraints({ targetS: 300 }), 10).segments.map((s) => s.id),
+    ).toEqual(["intro", "1-hold", "outro"]);
+  });
+
+  it("plays only the cards when every step is dropped", () => {
+    const all = steps.map((s) => s.index);
+    const edl = planReel(steps, busy, constraints({ dropped: all }), 1200);
+    expect(edl.segments.map((s) => s.id)).toEqual(["intro", "outro"]);
+    expect(edl.totalS).toBe(5.5);
+  });
+
+  it("drops every unpinned step when the target is below what one step needs", () => {
+    const edl = planReel(steps, busy, constraints({ targetS: 8 }), 1200);
+    expect(stepsIn(edl)).toEqual([]);
+    expect(edl.totalS).toBe(5.5);
+  });
+});
