@@ -369,7 +369,7 @@ buildreel/
     lib/log/readLogLines.ts    ~60   zod line schema, read + dedupe files
     lib/log/parseClaudeLog.ts  ~90   lines -> BuildEvent[]
     lib/log/toolLabel.ts       ~30
-    lib/log/redact.ts          ~40
+    lib/log/redact.ts          ~70   credential shapes, secret fields, token vs path rules
     lib/media/probe.ts         ~50
     lib/media/startTime.ts     ~40
     lib/media/activity.ts      ~50   packet-size activity, no decode
