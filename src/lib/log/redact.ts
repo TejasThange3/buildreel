@@ -4,11 +4,16 @@ const REDACTED = "[redacted]";
 // The variable name is kept so the caption still says what was set.
 const ENV_LINE = /^([ \t]*(?:export[ \t]+)?[A-Z][A-Z0-9_]{2,}=)(?!=)\S.*$/gm;
 // Inline assignments of credential-named fields: GROQ_API_KEY=..., api_key: "...", "apiKey": "...",
-// authToken = '...'. A bare "secret" or "token" needs a prefix (GITHUB_TOKEN, client_secret),
-// so prose ("The secret: ...") and code (const token = "id") survive, as do "key: ArrowRight"
-// and "primaryKey: customerId".
-const SECRET_NAME =
-  "(?:[A-Za-z0-9]*[_-]?(?:api|access|secret|private)[_-]?key|[A-Za-z0-9]+[_-]?(?:token|secret)|[A-Za-z0-9_]*(?:passw(?:or)?d|pwd|credentials?))";
+// authToken = '...', MY_APP_API_KEY=... A bare "secret" or "token" needs a prefix
+// (MY_GITHUB_TOKEN, client_secret) or must be a quoted JSON key ({"token": ...}), so prose
+// ("The secret: ...") and code (const token = "id") survive, as do "key: ArrowRight" and
+// "primaryKey: customerId".
+const SECRET_NAME = `(?:${[
+  "[A-Za-z0-9_-]*(?:api|access|secret|private)[_-]?key",
+  "[A-Za-z0-9][A-Za-z0-9_-]*?(?:token|secret)",
+  `(?<=["'])(?:token|secret)(?=["'])`,
+  "[A-Za-z0-9_-]*(?:passw(?:or)?d|pwd|credentials?)",
+].join("|")})`;
 const ASSIGN = `["']?[ \\t]*[:=][ \\t]*`;
 // Quoted values go whole, since passphrases contain spaces; each quote type allows the other
 // inside it and backslash escapes.

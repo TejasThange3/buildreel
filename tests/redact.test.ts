@@ -28,6 +28,17 @@ describe("redact", () => {
     ["apostrophe in a passphrase", `use password="don't tell anyone"`, 'use password="[redacted]"'],
     ["escaped quote", 'password="abc\\"def ghi" ok', 'password="[redacted]" ok'],
     ["prefixed token name", "authToken = 'eyJ0eXAi.abc'", "authToken = '[redacted]'"],
+    [
+      "underscored key name",
+      "Use MY_APP_API_KEY=abc123secret now",
+      "Use MY_APP_API_KEY=[redacted] now",
+    ],
+    [
+      "underscored token name",
+      'Use MY_GITHUB_TOKEN="abc123secret" now',
+      'Use MY_GITHUB_TOKEN="[redacted]" now',
+    ],
+    ["json token key", '{"token":"abc123secret"}', '{"token":"[redacted]"}'],
     ["base64 with slashes", "Use Ab12Cd34Ef56Gh78/Iz90Kl12Mn34Op56Qr78St90", "Use [redacted]"],
     ["token with a lowercase run", "AbCDefghijKlM1234567890NopQrStUvWXYZ", "[redacted]"],
     ["many short base64 segments", "A1b2/C3d4/E5f6/G7h8/I9j0/K1l2/M3n4/O5p6/Q7r8", "[redacted]"],
