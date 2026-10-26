@@ -1,10 +1,6 @@
 import { bestWindow } from "@/lib/timeline/activityWindow";
 import type { ActivityTrack, Constraints, EDL, Segment, Step } from "@/shared/types";
-
-// Output seconds of one part of a step, and how far fitting may shrink or grow it.
-type Part = { dur: number; min: number; max: number };
-
-type StepPlan = { step: Step; hold: Part; fast: Part; real: Part };
+import { fitToTarget, type Part, type StepPlan } from "./fit";
 
 // Below this mean activity even the best review window is a still screen, not worth real time.
 // Activity is scaled so a static screen sits at 0 (see lib/media/activity.ts).
@@ -97,10 +93,36 @@ function stepSegments(
   return segments;
 }
 
+// importance = reviewActivity 0.5 + tool count 0.3 + prompt length 0.2, the last two scaled by
+// the largest among the steps, so "something visibly happened" weighs most.
+function importanceOf(steps: Step[]): Map<number, number> {
+  const maxTools = Math.max(1, ...steps.map((s) => s.tools.length));
+  const maxWords = Math.max(1, ...steps.map((s) => wordCount(s.prompt)));
+  return new Map(
+    steps.map((s) => [
+      s.index,
+      s.reviewActivity * 0.5 +
+        (s.tools.length / maxTools) * 0.3 +
+        (wordCount(s.prompt) / maxWords) * 0.2,
+    ]),
+  );
+}
+
+// Emphasis is added after fitting, so asking for more of a step can push the reel past target.
+function withEmphasis(plan: StepPlan, constraints: Constraints): StepPlan {
+  const extra = constraints.emphasis[plan.step.index] ?? 0;
+  const dur = Math.min(plan.real.dur + extra, plan.real.max);
+  return { ...plan, real: { ...plan.real, dur } };
+}
+
 export function planReel(steps: Step[], activity: ActivityTrack, constraints: Constraints): EDL {
-  const plans = steps
-    .filter((s) => !constraints.dropped.includes(s.index))
-    .map((s) => draftPlan(s, activity, constraints));
+  const kept = steps.filter((s) => !constraints.dropped.includes(s.index));
+  const plans = fitToTarget(
+    kept.map((s) => draftPlan(s, activity, constraints)),
+    constraints.targetS,
+    importanceOf(kept),
+    constraints.pinned,
+  ).map((plan) => withEmphasis(plan, constraints));
   const segments = plans.flatMap((plan) => stepSegments(plan, activity, constraints));
   return { segments, totalS: segments.reduce((sum, s) => sum + s.outDur, 0) };
 }
