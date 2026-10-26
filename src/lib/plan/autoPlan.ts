@@ -18,11 +18,12 @@ function holdPart(prompt: string): Part {
 }
 
 // The agent's work plays at about 20x, 1.5 to 3 seconds, never slower than real time; fitting
-// may shorten it to 1.5 seconds. A speed forced by steering fixes the length.
+// may shorten it to 1.5 seconds. A speed forced by steering is honoured exactly and fixes the
+// length; which speeds are allowed is the steering schema's call, not the planner's.
 function fastPart(step: Step, forcedSpeed: number | undefined): Part {
   const workLen = step.workEnd - step.promptT;
-  if (forcedSpeed) {
-    const dur = workLen / Math.max(forcedSpeed, 1);
+  if (forcedSpeed !== undefined && forcedSpeed > 0) {
+    const dur = workLen / forcedSpeed;
     return { dur, min: dur, max: dur };
   }
   const dur = Math.min(clamp(workLen / 20, 1.5, 3), workLen);

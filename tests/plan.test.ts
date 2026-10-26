@@ -119,6 +119,16 @@ describe("planReel", () => {
     expect(part(edl, "1-fast")).toMatchObject({ speed: 10, outDur: 6 });
   });
 
+  it("honours a forced slow-motion speed exactly", () => {
+    const edl = planReel(
+      [step(1, 10, 1, 0.5)],
+      busy,
+      constraints({ targetS: 300, speed: { 1: 0.5 } }),
+      100,
+    );
+    expect(part(edl, "1-fast")).toMatchObject({ speed: 0.5, outDur: 120 });
+  });
+
   it("leaves out real time for a still review unless it is emphasized", () => {
     const still = new Array<number>(240).fill(0);
     const one = [step(1, 10, 1, 0)];
