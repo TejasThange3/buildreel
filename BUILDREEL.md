@@ -134,7 +134,7 @@ No other dependency without a one-line justification in the commit body.
 
 ### 5.1 Code size and slop
 1. Write only the code the task needs. If a file needs 100 lines, it gets about 100 lines, not 300.
-2. Respect the size budgets in ARCHITECTURE.md section 8. If a file will exceed its budget, stop and explain why before writing it.
+2. The size estimates in ARCHITECTURE.md section 8 are a guide, not a cap. A file gets the lines it needs and no filler; if one grows far past its estimate, say why.
 3. No speculative abstractions: no factories, base classes, generic wrappers, config systems or plugin points that nothing uses yet.
 4. No unused exports, parameters, types, files or dependencies. Delete dead code in the same commit that makes it dead.
 5. No placeholder code: no TODO stubs, no mock data in production paths, no "example" functions.

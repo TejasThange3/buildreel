@@ -339,7 +339,7 @@ Export -> worker-free main-thread loop with progress + cancel (yield every N fra
 
 ## 8. Folder structure and size budgets
 
-Budgets are ceilings, not targets. Smaller is better.
+Line counts are estimates of what each file needs, not caps: the rule is no unnecessary code.
 
 ```
 buildreel/
