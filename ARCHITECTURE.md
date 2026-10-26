@@ -367,7 +367,7 @@ buildreel/
     ui/Editor.tsx       ~80      'use client'; stage switch: import / sync / edit / export
     state/store.ts      ~120     zustand: project, constraints history, derived EDL
     lib/log/readLogLines.ts    ~60   zod line schema, read + dedupe files
-    lib/log/parseClaudeLog.ts  ~90   lines -> BuildEvent[]
+    lib/log/parseClaudeLog.ts  ~105  lines -> BuildEvent[], turn state per session
     lib/log/toolLabel.ts       ~30
     lib/log/redact.ts          ~70   credential shapes, secret fields, token vs path rules
     lib/media/probe.ts         ~50
