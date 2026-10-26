@@ -30,6 +30,8 @@ describe("redact", () => {
     ["prefixed token name", "authToken = 'eyJ0eXAi.abc'", "authToken = '[redacted]'"],
     ["base64 with slashes", "Use Ab12Cd34Ef56Gh78/Iz90Kl12Mn34Op56Qr78St90", "Use [redacted]"],
     ["token with a lowercase run", "AbCDefghijKlM1234567890NopQrStUvWXYZ", "[redacted]"],
+    ["many short base64 segments", "A1b2/C3d4/E5f6/G7h8/I9j0/K1l2/M3n4/O5p6/Q7r8", "[redacted]"],
+    ["aws-style secret", "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY", "[redacted]"],
   ])("removes %s", (_, input, expected) => {
     expect(redact(input)).toBe(expected);
   });
@@ -60,6 +62,8 @@ describe("redact", () => {
     'The secret: "keep going" is good pacing.',
     'const token = "id";',
     "https://example.com?time=12:30@alice",
+    "C:/Projects/Buildreel2026/Architecture",
+    "see src/lib/Media2/CanvasSink/VideoSampleSink/Encoder4",
     "make it a minute and keep step 7",
   ])("leaves ordinary text alone: %s", (input) => {
     expect(redact(input)).toBe(input);
