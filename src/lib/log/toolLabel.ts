@@ -18,7 +18,8 @@ export function toolLabel(name: string, input: Record<string, unknown>): string 
     return `Edited ${path.split(/[\\/]/).pop()}`;
   }
   if (SHELL_TOOLS.has(name)) {
-    const what = stringField(input, "description") ?? stringField(input, "command")?.slice(0, 40);
+    const what =
+      stringField(input, "description") ?? stringField(input, "command")?.slice(0, 40).trimEnd();
     return `Ran ${what ?? name}`;
   }
   if (name === "Agent" || name === "Task") return "Started a subagent";
