@@ -25,6 +25,9 @@ describe("redact", () => {
     ],
     ["short password", "login with pwd=hunter2 now", "login with pwd=[redacted] now"],
     ["url credentials", "postgres://admin:s3cret@db.host/app", "postgres://[redacted]@db.host/app"],
+    ["apostrophe in a passphrase", `use password="don't tell anyone"`, 'use password="[redacted]"'],
+    ["escaped quote", 'password="abc\\"def ghi" ok', 'password="[redacted]" ok'],
+    ["prefixed token name", "authToken = 'eyJ0eXAi.abc'", "authToken = '[redacted]'"],
     ["base64 with slashes", "Use Ab12Cd34Ef56Gh78/Iz90Kl12Mn34Op56Qr78St90", "Use [redacted]"],
     ["token with a lowercase run", "AbCDefghijKlM1234567890NopQrStUvWXYZ", "[redacted]"],
   ])("removes %s", (_, input, expected) => {
@@ -54,6 +57,9 @@ describe("redact", () => {
     "Use key: ArrowRight for navigation",
     "Use primaryKey: customerId when joining",
     "a token: of thanks",
+    'The secret: "keep going" is good pacing.',
+    'const token = "id";',
+    "https://example.com?time=12:30@alice",
     "make it a minute and keep step 7",
   ])("leaves ordinary text alone: %s", (input) => {
     expect(redact(input)).toBe(input);

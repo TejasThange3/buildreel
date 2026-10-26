@@ -3,17 +3,22 @@ const REDACTED = "[redacted]";
 // .env style is KEY=value with no spaces; prose like "NOTE = remember" or "A == b" is not.
 // The variable name is kept so the caption still says what was set.
 const ENV_LINE = /^([ \t]*(?:export[ \t]+)?[A-Z][A-Z0-9_]{2,}=)(?!=)\S.*$/gm;
-// Inline assignments of secret-named fields: GROQ_API_KEY=..., api_key: "...", "apiKey": "...".
-// Names are credential words only, so "key: ArrowRight" and "primaryKey: customerId" survive.
+// Inline assignments of credential-named fields: GROQ_API_KEY=..., api_key: "...", "apiKey": "...",
+// authToken = '...'. A bare "secret" or "token" needs a prefix (GITHUB_TOKEN, client_secret),
+// so prose ("The secret: ...") and code (const token = "id") survive, as do "key: ArrowRight"
+// and "primaryKey: customerId".
 const SECRET_NAME =
-  "[A-Za-z0-9_]*(?:api[_-]?key|access[_-]?key|secret[_-]?key|private[_-]?key|secret|token|passw(?:or)?d|pwd|credentials?)";
-// A quoted value is removed whole, since passphrases contain spaces.
+  "(?:[A-Za-z0-9]*[_-]?(?:api|access|secret|private)[_-]?key|[A-Za-z0-9]+[_-]?(?:token|secret)|[A-Za-z0-9_]*(?:passw(?:or)?d|pwd|credentials?))";
+const ASSIGN = `["']?[ \\t]*[:=][ \\t]*`;
+// Quoted values go whole, since passphrases contain spaces; each quote type allows the other
+// inside it and backslash escapes.
 const SECRET_QUOTED = new RegExp(
-  `\\b(${SECRET_NAME}["']?[ \\t]*[:=][ \\t]*)(["'])[^"'\\n]+\\2`,
+  `\\b(${SECRET_NAME}${ASSIGN})(?:"(?:[^"\\\\\\n]|\\\\.)+"|'(?:[^'\\\\\\n]|\\\\.)+')`,
   "gi",
 );
-const SECRET_FIELD = new RegExp(`\\b(${SECRET_NAME}["']?[ \\t]*[:=][ \\t]*)[^\\s"',;]{6,}`, "gi");
-const URL_CREDENTIALS = /\b([a-z][a-z0-9+.-]*:\/\/)[^\s/:@]+:[^\s/@]+@/gi;
+const SECRET_FIELD = new RegExp(`\\b(${SECRET_NAME}${ASSIGN})[^\\s"',;]{6,}`, "gi");
+// Userinfo lives before the host only; "?" and "#" end the authority.
+const URL_CREDENTIALS = /\b([a-z][a-z0-9+.-]*:\/\/)[^\s/?#:@]+:[^\s/?#@]+@/gi;
 const KEY_SHAPES = [
   /\bsk-[A-Za-z0-9_-]{20,}/g,
   /\bsk_(?:live|test)_[A-Za-z0-9]{16,}/g,
@@ -43,7 +48,10 @@ function looksLikeToken(run: string): boolean {
 export function redact(text: string): string {
   let out = text
     .replace(ENV_LINE, `$1${REDACTED}`)
-    .replace(SECRET_QUOTED, `$1$2${REDACTED}$2`)
+    .replace(SECRET_QUOTED, (match, name: string) => {
+      const quote = match.charAt(name.length);
+      return `${name}${quote}${REDACTED}${quote}`;
+    })
     .replace(SECRET_FIELD, `$1${REDACTED}`)
     .replace(URL_CREDENTIALS, `$1${REDACTED}@`);
   for (const shape of KEY_SHAPES) out = out.replace(shape, REDACTED);
