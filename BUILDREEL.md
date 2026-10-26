@@ -168,9 +168,9 @@ No other dependency without a one-line justification in the commit body.
 1. In the repo, before the first commit:
    ```
    git config user.name "Tejas Thange"
-   git config user.email "tejasankushthange3@gmail.com"
+   git config user.email "142657235+TejasThange3@users.noreply.github.com"
    ```
-   Verify with `git config user.name` and `git config user.email`.
+   Verify with `git config user.name` and `git config user.email`. The GitHub no-reply address is used because the account blocks pushes that expose the personal email.
 2. The remote must be the personal account: `github.com/TejasThange3/buildreel`. Some repos on this laptop push through the company account Tejasmimic; confirm the credential used for this remote is TejasThange3 before the first push.
 3. No `Co-Authored-By` trailers, no "Generated with Claude Code" lines, no agent signatures in commit messages or PR bodies. Disable attribution in `.claude/settings.json` for this project (`"includeCoAuthoredBy": false`, or the current equivalent attribution setting; check the Claude Code docs for your version).
 4. Before every push, run `git log --format='%an <%ae>%n%b' -5` and confirm author and no trailers.
@@ -396,7 +396,7 @@ Live link: https://buildreel.vercel.app   Repo: https://github.com/TejasThange3/
 - [ ] Demo video under 2:00, unlisted link works logged-out.
 - [ ] Wispr Insights usage card screenshot.
 - [ ] Write-up dictated and pasted.
-- [ ] All commits authored by Tejas Thange <tejasankushthange3@gmail.com>, no trailers.
+- [ ] All commits authored by Tejas Thange <142657235+TejasThange3@users.noreply.github.com>, no trailers.
 - [ ] README has live link, demo link, how it works, setup.
 - [ ] Weekly check-ins done, posts tagged #NoHandsChallenge.
 - [ ] Submitted before Saturday evening.
@@ -419,7 +419,7 @@ They are not suggestions. In particular:
   no any, no console.log, no emojis.
 - Stack is Next.js (App Router) + TypeScript on Vercel; the backend is only route handlers in src/app/api.
 - Read current docs for Next.js, Vercel, Upstash, Mediabunny and the LLM provider before using them.
-- Every commit is authored by me: user.name "Tejas Thange", user.email "tejasankushthange3@gmail.com".
+- Every commit is authored by me: user.name "Tejas Thange", user.email "142657235+TejasThange3@users.noreply.github.com".
   No Co-Authored-By trailers, no generated-by lines. Disable attribution in .claude/settings.json.
 - One logical change per commit, every commit green, Conventional Commits format.
   Aim for 80-110 real commits over the build. Never pad.
