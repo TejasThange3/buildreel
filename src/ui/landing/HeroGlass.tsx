@@ -191,9 +191,10 @@ export function HeroGlass() {
 function HeroGlassFallback() {
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
-      <div className="absolute inset-x-0 top-[38%] h-24 -rotate-6 bg-[radial-gradient(closest-side,rgb(200_205_220/0.35),transparent)] blur-2xl" />
-      <div className="absolute inset-x-0 top-[55%] h-16 rotate-3 bg-[radial-gradient(closest-side,rgb(200_205_220/0.22),transparent)] blur-2xl" />
-      <div className="absolute top-[18%] left-1/2 aspect-[16/10] w-[72%] -translate-x-1/2 rounded-[22px] border border-white/15 bg-white/[0.04] shadow-[inset_0_1px_0_rgb(255_255_255/0.25)] backdrop-blur-md md:top-1/2 md:left-[70%] md:w-[42%] md:-translate-y-1/2" />
+      <div className="absolute inset-x-0 top-[34%] h-px -rotate-6 bg-[linear-gradient(90deg,transparent,rgb(220_224_235/0.7)_45%,transparent)] shadow-[0_0_24px_4px_rgb(200_205_220/0.25)]" />
+      <div className="absolute inset-x-0 top-[48%] h-px rotate-3 bg-[linear-gradient(90deg,transparent,rgb(220_224_235/0.5)_60%,transparent)] shadow-[0_0_20px_3px_rgb(200_205_220/0.18)]" />
+      <div className="absolute inset-x-0 top-[60%] h-px -rotate-2 bg-[linear-gradient(90deg,transparent_20%,rgb(220_224_235/0.35),transparent)]" />
+      <div className="absolute top-[14%] left-1/2 aspect-[16/10] w-[72%] -translate-x-1/2 rounded-[22px] border border-white/25 bg-[linear-gradient(160deg,rgb(255_255_255/0.10),rgb(255_255_255/0.02)_45%,rgb(255_255_255/0.06))] shadow-[inset_0_1px_0_rgb(255_255_255/0.35),0_24px_60px_rgb(0_0_0/0.45)] backdrop-blur-md lg:top-1/2 lg:left-[73%] lg:w-[38%] lg:-translate-y-1/2" />
     </div>
   );
 }
