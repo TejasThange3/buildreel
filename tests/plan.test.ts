@@ -221,3 +221,12 @@ describe("planReel edge cases", () => {
     expect(edl.totalS).toBe(5.5);
   });
 });
+
+describe("outro stats", () => {
+  it("uses singular nouns for one", () => {
+    const edl = planReel([step(1, 1, 0, 0.5)], busy, constraints({ targetS: 300 }), 100);
+    expect(edl.segments.at(-1)?.overlay).toMatchObject({
+      text: expect.stringMatching(/^1 step from 1 prompt, 1 word dictated\n/),
+    });
+  });
+});

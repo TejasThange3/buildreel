@@ -126,11 +126,13 @@ function formatDuration(seconds: number): string {
   return minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)} h ${minutes % 60} min`;
 }
 
+const count = (n: number, noun: string) => `${n} ${noun}${n === 1 ? "" : "s"}`;
+
 // All prompts and words count, including steps left out of the cut: the card is about the build.
 function statsText(steps: Step[], keptSteps: number, rawS: number, reelS: number): string {
   const words = steps.reduce((sum, s) => sum + wordCount(s.prompt), 0);
   return [
-    `${keptSteps} steps from ${steps.length} prompts, ${words} words dictated`,
+    `${count(keptSteps, "step")} from ${count(steps.length, "prompt")}, ${count(words, "word")} dictated`,
     `${formatDuration(rawS)} of recording in ${formatDuration(reelS)}`,
   ].join("\n");
 }
