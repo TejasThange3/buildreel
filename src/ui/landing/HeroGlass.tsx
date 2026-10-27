@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { FRAGMENT_SHADER, VERTEX_SHADER } from "./heroShader";
+import { SLAB_CLASS } from "./slab";
 
 // The glass loop costs ten light evaluations per pixel inside the slab, so the density is capped.
 const MAX_DPR = 1.5;
@@ -49,10 +50,10 @@ function setup(gl: WebGLRenderingContext): Uniforms {
 const WIDE_CSS_PX = 1024;
 
 // The slab sits right of the headline on wide screens and above it on narrow ones.
-// Coordinates are GL pixels, origin bottom-left.
+// Coordinates are GL pixels, origin bottom-left. SLAB_CLASS in slab.ts is the same box in CSS.
 function glassRect(w: number, h: number, wide: boolean): [number, number, number, number, number] {
   // Stacked layouts size the slab from the height too, so it clears the headline on short screens.
-  const hw = wide ? Math.min(w * 0.19, h * 0.4) : Math.min(w * 0.38, h * 0.16);
+  const hw = wide ? Math.min(w * 0.19, h * 0.4) : Math.min(w * 0.42, h * 0.2);
   const hh = hw / 1.6;
   return wide ? [w * 0.73, h * 0.5, hw, hh, hh * 0.22] : [w * 0.5, h * 0.78, hw, hh, hh * 0.22];
 }
@@ -199,11 +200,16 @@ export function HeroGlass() {
 // is drawn with CSS: soft light bands and a frosted slab in the same place.
 function HeroGlassFallback() {
   return (
-    <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+    <div
+      aria-hidden
+      className="pointer-events-none absolute inset-0 overflow-hidden [container-type:size]"
+    >
       <div className="absolute inset-x-0 top-[34%] h-px -rotate-6 bg-[linear-gradient(90deg,transparent,rgb(220_224_235/0.7)_45%,transparent)] shadow-[0_0_24px_4px_rgb(200_205_220/0.25)]" />
       <div className="absolute inset-x-0 top-[48%] h-px rotate-3 bg-[linear-gradient(90deg,transparent,rgb(220_224_235/0.5)_60%,transparent)] shadow-[0_0_20px_3px_rgb(200_205_220/0.18)]" />
       <div className="absolute inset-x-0 top-[60%] h-px -rotate-2 bg-[linear-gradient(90deg,transparent_20%,rgb(220_224_235/0.35),transparent)]" />
-      <div className="absolute top-[14%] left-1/2 aspect-[16/10] w-[72%] -translate-x-1/2 rounded-[22px] border border-white/25 bg-[linear-gradient(160deg,rgb(255_255_255/0.10),rgb(255_255_255/0.02)_45%,rgb(255_255_255/0.06))] shadow-[inset_0_1px_0_rgb(255_255_255/0.35),0_24px_60px_rgb(0_0_0/0.45)] backdrop-blur-md lg:top-1/2 lg:left-[73%] lg:w-[38%] lg:-translate-y-1/2" />
+      <div
+        className={`${SLAB_CLASS} border border-white/25 bg-[linear-gradient(160deg,rgb(255_255_255/0.10),rgb(255_255_255/0.02)_45%,rgb(255_255_255/0.06))] shadow-[inset_0_1px_0_rgb(255_255_255/0.35),0_24px_60px_rgb(0_0_0/0.45)] backdrop-blur-md`}
+      />
     </div>
   );
 }

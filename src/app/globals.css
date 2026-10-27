@@ -37,6 +37,27 @@ body {
   font-feature-settings: "ss01", "cv11";
 }
 
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes sweep {
+  to {
+    left: 100%;
+  }
+}
+
+@keyframes fill-x {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
 ::selection {
   background: rgb(255 255 255 / 0.18);
 }

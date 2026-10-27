@@ -1,7 +1,9 @@
 import { GithubLogoIcon } from "@phosphor-icons/react/dist/ssr";
 import { Logo } from "../Logo";
 import { HeroGlass } from "./HeroGlass";
+import { HeroReel } from "./HeroReel";
 import { MetalLink } from "./MetalLink";
+import { SLAB_CLASS } from "./slab";
 
 const REPO_URL = "https://github.com/TejasThange3/buildreel";
 
@@ -14,6 +16,14 @@ export function Hero() {
         aria-hidden
         className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_top,var(--color-canvas)_8%,transparent_55%)] lg:bg-[linear-gradient(to_right,rgb(10_10_12/0.85)_20%,transparent_58%)]"
       />
+      {/* The reel plays on the glass face; it fades in after the shader's own idle-time start. */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 [container-type:size]">
+        <div
+          className={`${SLAB_CLASS} [container-type:inline-size] animate-[fade-in_900ms_var(--ease-out-expo)_600ms_both]`}
+        >
+          <HeroReel />
+        </div>
+      </div>
       <nav className="relative mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-4 sm:px-6">
         <Logo />
         <div className="flex items-center gap-2">
