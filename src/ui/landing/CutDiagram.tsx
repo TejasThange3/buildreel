@@ -1,5 +1,7 @@
 "use client";
 
+import type { Segment } from "@/shared/types";
+import { SEGMENT_CLASS } from "../segmentStyle";
 import { useInView } from "./useInView";
 
 // A real cut from this build: the 29 min recording of Phase 4 (one prompt at 1:57, then one long
@@ -37,12 +39,19 @@ function band(rawFrom: number, rawTo: number, reelFrom: number, reelTo: number) 
   return `M${rawX(rawFrom)},${y0} L${rawX(rawTo)},${y0} L${reelX(reelTo)},${BOTTOM} L${reelX(reelFrom)},${BOTTOM} Z`;
 }
 
-// Each caption sits under the reel cell it describes. The caption grid's columns are the REEL
+// One card under each reel cell, saying what plays there. The card grid's columns are the REEL
 // durations (2.5, 5, 3, 4.2, 3); Tailwind needs them as a literal class.
-const CAPTIONS = [
-  { column: 2, label: "Your prompt, as you dictated it" },
-  { column: 3, label: "26 min of agent work at 532x" },
-  { column: 4, label: "You checking it, in real time" },
+const PARTS: { mode: Segment["mode"]; value: string; label: string; text: string }[] = [
+  { mode: "card", value: "2.5 s", label: "Title", text: 'Opens on "How I built it"' },
+  { mode: "hold", value: "5 s", label: "Prompt", text: "Your prompt, as you dictated it" },
+  { mode: "fast", value: "532x", label: "Agent", text: "26 min of work, every tool call shown" },
+  {
+    mode: "real",
+    value: "1x",
+    label: "Review",
+    text: "You checking it, where the screen moved most",
+  },
+  { mode: "card", value: "3 s", label: "Stats", text: "Steps, words dictated, time cut" },
 ];
 
 export function CutDiagram() {
@@ -127,18 +136,23 @@ export function CutDiagram() {
           ))}
         </g>
       </svg>
-      <div className="mt-2 flex justify-between font-mono text-xs text-fg-subtle">
-        <span>Reel, 18 s</span>
-        <span className="tabular-nums">99% shorter</span>
-      </div>
-      <ol className="mt-8 grid gap-4 sm:grid-cols-[2.5fr_5fr_3fr_4.2fr_3fr] sm:gap-3">
-        {CAPTIONS.map(({ column, label }, i) => (
+      <ol className="mt-6 grid gap-3 sm:grid-cols-[2.5fr_5fr_3fr_4.2fr_3fr]">
+        {PARTS.map(({ mode, value, label, text }, i) => (
           <li
             key={label}
-            style={{ ...reveal(i), gridColumnStart: column }}
-            className="border-t border-line pt-3 text-sm text-pretty text-fg-muted max-sm:![grid-column-start:auto]"
+            style={reveal(i)}
+            className="flex gap-4 rounded-[var(--radius-panel)] border border-line bg-surface p-4 sm:flex-col sm:gap-0"
           >
-            {label}
+            <div className="flex items-center gap-2 font-mono text-xs text-fg-subtle sm:w-auto max-sm:w-20 max-sm:shrink-0">
+              <span aria-hidden className={`size-2.5 rounded-[3px] ${SEGMENT_CLASS[mode]}`} />
+              {label}
+            </div>
+            <div className="sm:mt-6">
+              <p className="text-xl font-semibold tracking-tight tabular-nums lg:text-2xl">
+                {value}
+              </p>
+              <p className="mt-1 text-sm leading-snug text-pretty text-fg-muted">{text}</p>
+            </div>
           </li>
         ))}
       </ol>
