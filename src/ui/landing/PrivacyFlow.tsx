@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { redact } from "@/lib/log/redact";
 import { useInView } from "./useInView";
 import { usePageVisible, useReducedMotion } from "./usePageState";
 
 // What leaves the browser, shown as it happens: log lines pass the redactor one by one, and only
-// the cleaned text arrives at the server. Lines are shortened samples of what redact.ts removes.
+// the cleaned text arrives at the server. The cleaned lines are redact()'s own output.
 const FILES = [
   { name: "screen-recording.mkv", note: "decoded here" },
   { name: "session.jsonl", note: "parsed here" },
@@ -13,18 +14,19 @@ const FILES = [
   { name: "reel.mp4", note: "encoded here" },
 ];
 const LINES = [
-  { keep: "ANTHROPIC_API_KEY=", secret: "sk-ant-x91…" },
-  { keep: "send it to ", secret: "dev@example.com" },
-  { keep: "Authorization: Bearer ", secret: "eyJ0eXAi…" },
-];
+  "ANTHROPIC_API_KEY=sk-ant-x91kQ",
+  "send the build to dev@example.com",
+  'password: "correct-horse-battery"',
+].map((raw) => ({ raw, clean: redact(raw) }));
 const ARRIVALS = [
   { kind: "dictated", text: "make it a minute" },
   { kind: "step title", text: "Export to mp4" },
+  { kind: "excerpt", text: "add an export panel with…" },
 ];
 
-// One tick per beat: three redactions, two arrivals, then a hold before the loop restarts.
+// One tick per beat: three redactions, three arrivals, then a hold before the loop restarts.
 const TICK_MS = 750;
-const TICKS = 10;
+const TICKS = 11;
 const FINAL = TICKS - 1;
 
 const ZONE = "group flex flex-col p-6 transition-colors duration-300 hover:bg-white/[0.02] sm:p-8";
@@ -50,18 +52,12 @@ export function PrivacyFlow() {
       ref={ref}
       className="relative grid overflow-hidden rounded-[var(--radius-panel)] border border-line bg-surface/60 lg:grid-cols-3"
     >
-      <p className="sr-only">
-        Your recording, logs, frames and exported video stay in your browser. Keys, tokens and
-        emails are removed from any text before it is sent. Only the sentence you dictate and short
-        step titles reach the server.
-      </p>
-
-      <section aria-hidden className={ZONE}>
-        <div className={ZONE_HEAD}>
+      <section className={ZONE}>
+        <div aria-hidden className={ZONE_HEAD}>
           <span>01</span>
           <span>your browser</span>
         </div>
-        <ul className={VISUAL}>
+        <ul aria-hidden className={VISUAL}>
           {FILES.map(({ name, note }) => (
             <li
               key={name}
@@ -78,31 +74,28 @@ export function PrivacyFlow() {
         </p>
       </section>
 
-      <section aria-hidden className={`${ZONE} border-line max-lg:border-t lg:border-l`}>
-        <div className={ZONE_HEAD}>
+      <section className={`${ZONE} border-line max-lg:border-t lg:border-l`}>
+        <div aria-hidden className={ZONE_HEAD}>
           <span>02</span>
           <span>redact.ts</span>
         </div>
-        <ul className={VISUAL}>
-          {LINES.map(({ keep, secret }, i) => {
+        <ul aria-hidden className={VISUAL}>
+          {LINES.map(({ raw, clean }, i) => {
             const cleaned = beat > i;
             return (
               <li
-                key={keep}
-                className="relative truncate rounded-[var(--radius-chip)] border border-line bg-canvas/60 px-3 py-2.5 font-mono text-xs transition-colors duration-300 group-hover:border-line-strong text-fg-muted"
+                key={raw}
+                className="grid rounded-[var(--radius-chip)] border border-line bg-canvas/60 px-3 py-2.5 font-mono text-xs transition-colors duration-300 group-hover:border-line-strong"
               >
-                {keep}
-                <span className="relative inline-grid align-bottom">
-                  <span
-                    className={`col-start-1 row-start-1 text-fg transition-[opacity,filter] duration-300 ${cleaned ? "opacity-0 blur-[3px]" : ""}`}
-                  >
-                    {secret}
-                  </span>
-                  <span
-                    className={`col-start-1 row-start-1 w-fit rounded bg-white/10 px-1 text-fg-subtle transition-opacity duration-300 ${cleaned ? "" : "opacity-0"}`}
-                  >
-                    [redacted]
-                  </span>
+                <span
+                  className={`col-start-1 row-start-1 truncate text-fg transition-opacity duration-300 ${cleaned ? "opacity-0" : ""}`}
+                >
+                  {raw}
+                </span>
+                <span
+                  className={`col-start-1 row-start-1 truncate text-fg-muted transition-opacity duration-300 ${cleaned ? "" : "opacity-0"}`}
+                >
+                  {clean}
                 </span>
               </li>
             );
@@ -114,12 +107,12 @@ export function PrivacyFlow() {
         </p>
       </section>
 
-      <section aria-hidden className={`${ZONE} border-line max-lg:border-t lg:border-l`}>
-        <div className={ZONE_HEAD}>
+      <section className={`${ZONE} border-line max-lg:border-t lg:border-l`}>
+        <div aria-hidden className={ZONE_HEAD}>
           <span>03</span>
           <span>POST /api/steer</span>
         </div>
-        <ul className={VISUAL}>
+        <ul aria-hidden className={VISUAL}>
           {ARRIVALS.map(({ kind, text }, i) => {
             const arrived = beat > LINES.length + i;
             return (
@@ -141,7 +134,7 @@ export function PrivacyFlow() {
         </ul>
         <h3 className="mt-6 text-lg font-semibold tracking-tight">Reaches our server</h3>
         <p className="mt-1.5 text-sm leading-relaxed text-fg-muted">
-          Only the sentence you dictate and short step titles, so the planner understands you.
+          The sentence you dictate, step titles and short prompt excerpts, all cleaned first.
         </p>
       </section>
     </div>
