@@ -85,8 +85,9 @@ const partAt = (t: number) => PARTS.findIndex(({ span }) => t >= span[0] && t < 
 export function CutDiagram() {
   const [ref, shown] = useInView<HTMLDivElement>();
   const [active, setActive] = useState<number | null>(null);
-  // The reel time under the pointer, while it is over the reel bar.
+  // The reel time under the pointer, or set from the keyboard, while scrubbing.
   const [scrub, setScrub] = useState<number | null>(null);
+  const [keyboard, setKeyboard] = useState(false);
 
   const reveal = (i: number) => ({
     opacity: shown ? 1 : 0,
@@ -94,11 +95,14 @@ export function CutDiagram() {
   });
   const emphasis = (i: number) => (active === null ? 1 : active === i ? 1 : 0.3);
 
+  const scrubTo = (t: number) => {
+    const clamped = Math.min(Math.max(t, 0), REEL_S - 0.01);
+    setScrub(clamped);
+    setActive(partAt(clamped));
+  };
   const onScrub = (e: PointerEvent<SVGRectElement>) => {
     const box = e.currentTarget.getBoundingClientRect();
-    const t = Math.min(Math.max(((e.clientX - box.left) / box.width) * REEL_S, 0), REEL_S - 0.01);
-    setScrub(t);
-    setActive(partAt(t));
+    scrubTo(((e.clientX - box.left) / box.width) * REEL_S);
   };
   const endScrub = () => {
     setScrub(null);
@@ -107,6 +111,14 @@ export function CutDiagram() {
 
   const scrubPart = scrub === null ? undefined : PARTS[partAt(scrub)];
   const scrubSource = scrub === null ? undefined : scrubPart?.source?.(scrub);
+  const readout =
+    scrub === null
+      ? "Move along the reel"
+      : `Reel ${formatTime(scrub)}  ·  ${
+          scrubSource === undefined
+            ? "card, not from the recording"
+            : `recording ${formatTime(scrubSource)}`
+        }`;
 
   return (
     <div ref={ref}>
@@ -114,14 +126,11 @@ export function CutDiagram() {
         <span>
           Recording, 29 min, <span className="text-voice">prompt at 1:57</span>
         </span>
-        <span aria-live="polite" className="text-right tabular-nums max-sm:hidden">
-          {scrub === null
-            ? "Move along the reel"
-            : `Reel ${formatTime(scrub)}  ·  ${
-                scrubSource === undefined
-                  ? "card, not from the recording"
-                  : `recording ${formatTime(scrubSource)}`
-              }`}
+        <span
+          aria-hidden
+          className={`text-right tabular-nums ${scrub === null ? "max-sm:hidden" : ""}`}
+        >
+          {readout}
         </span>
       </div>
       <svg
@@ -214,6 +223,18 @@ export function CutDiagram() {
           ))}
         </g>
 
+        {keyboard && (
+          <rect
+            x="-4"
+            y={BOTTOM - 4}
+            width={W + 5}
+            height={BAR + 8}
+            rx="8"
+            fill="none"
+            stroke="var(--color-fg)"
+            strokeWidth="2"
+          />
+        )}
         {scrub !== null && (
           <g pointerEvents="none">
             {scrubSource !== undefined && (
@@ -259,6 +280,27 @@ export function CutDiagram() {
           onPointerLeave={endScrub}
         />
       </svg>
+      {/* The keyboard way to scrub: arrow keys move through the reel, and the value text reads
+          out where that moment came from. */}
+      <input
+        type="range"
+        min={0}
+        max={REEL_S}
+        step={0.1}
+        value={scrub ?? 0}
+        aria-label="Reel time"
+        aria-valuetext={readout}
+        onChange={(e) => scrubTo(Number(e.target.value))}
+        onFocus={() => {
+          setKeyboard(true);
+          scrubTo(scrub ?? 0);
+        }}
+        onBlur={() => {
+          setKeyboard(false);
+          endScrub();
+        }}
+        className="sr-only"
+      />
 
       <ol className="mt-8 grid gap-3 sm:grid-cols-[2.5fr_5fr_3fr_4.2fr_3fr]">
         {PARTS.map(({ mode, value, label, text }, i) => (
@@ -268,17 +310,22 @@ export function CutDiagram() {
               onPointerLeave={() => setActive(null)}
               data-active={active === i}
               data-dim={active !== null && active !== i}
-              className="group relative flex w-full flex-col overflow-hidden rounded-[var(--radius-panel)] border border-line bg-surface p-5 transition-[transform,border-color,background-color,opacity] duration-300 ease-[var(--ease-out-expo)] data-[active=true]:-translate-y-1 data-[active=true]:border-line-strong data-[active=true]:bg-raised data-[dim=true]:opacity-50"
+              className="group relative flex w-full flex-col overflow-hidden rounded-[var(--radius-panel)] border border-line bg-surface p-5 transition-[transform,border-color,background-color,opacity] duration-300 ease-[var(--ease-out-expo)] data-[active=true]:-translate-y-1 data-[active=true]:border-line-strong data-[active=true]:bg-raised"
             >
               <span
                 aria-hidden
                 className={`absolute inset-x-0 top-0 h-0.5 origin-left scale-x-0 transition-transform duration-500 ease-[var(--ease-out-expo)] group-data-[active=true]:scale-x-100 ${SEGMENT_CLASS[mode]}`}
               />
               <div className="flex items-center gap-2 font-mono text-xs text-fg-subtle">
-                <span aria-hidden className={`size-2.5 rounded-[3px] ${SEGMENT_CLASS[mode]}`} />
+                <span
+                  aria-hidden
+                  className={`size-2.5 rounded-[3px] transition-opacity duration-300 group-data-[dim=true]:opacity-30 ${SEGMENT_CLASS[mode]}`}
+                />
                 {label}
               </div>
-              <p className="mt-8 text-2xl font-semibold tracking-tight tabular-nums">{value}</p>
+              <p className="mt-8 text-2xl font-semibold tracking-tight tabular-nums transition-colors duration-300 group-data-[dim=true]:text-fg-muted">
+                {value}
+              </p>
               <p className="mt-1.5 text-sm leading-snug text-pretty text-fg-muted">{text}</p>
             </div>
           </li>
