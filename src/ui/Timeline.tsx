@@ -35,7 +35,7 @@ export function Timeline() {
 
   return (
     <div>
-      <div className="relative h-10 [container-type:inline-size]">
+      <div className="relative h-10 rounded-[var(--radius-chip)] [container-type:inline-size] has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-4 has-[:focus-visible]:outline-fg">
         <div className="flex h-full gap-px overflow-hidden rounded-[var(--radius-chip)]">
           {edl.segments.map((s) => (
             <div
