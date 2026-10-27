@@ -24,8 +24,9 @@ type ProjectState = Inputs &
     importing: boolean;
     importError?: string;
     importFiles: (files: File[]) => Promise<void>;
-    setOffset: (offsetS: number) => void;
+    markPromptAt: (videoT: number) => void;
     confirmSync: () => void;
+    reset: () => void;
     toggleStep: (index: number) => void;
     setTarget: (seconds: number) => void;
   };
@@ -97,8 +98,25 @@ export const useProject = create<ProjectState>()((set, get) => {
       }
     },
 
-    setOffset: (offsetS) => update({ offsetS }),
+    // The user says step 1's prompt is sent at videoT; every event shifts by the same amount.
+    markPromptAt: (videoT) => {
+      const { steps, offsetS } = get();
+      const first = steps[0];
+      if (first) update({ offsetS: offsetS + videoT - first.promptT });
+    },
     confirmSync: () => set({ synced: true }),
+
+    reset: () => {
+      const { recording } = get();
+      if (recording) URL.revokeObjectURL(recording.url);
+      set({
+        recording: undefined,
+        log: undefined,
+        synced: false,
+        importError: undefined,
+        ...EMPTY,
+      });
+    },
 
     toggleStep: (index) => {
       const { dropped } = get().constraints;
