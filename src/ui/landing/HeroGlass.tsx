@@ -95,8 +95,12 @@ export function HeroGlass() {
     try {
       uniforms = setup(gl);
     } catch (error) {
+      // A driver that cannot compile the shader is a capability gap, not a crash: free the
+      // context, show the fallback, and report the error without unmounting the page.
+      gl.getExtension("WEBGL_lose_context")?.loseContext();
       fail();
-      throw error;
+      reportError(error);
+      return;
     }
 
     const still = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -154,6 +158,8 @@ export function HeroGlass() {
       onScreen = entry?.isIntersecting ?? false;
       resume();
     });
+    // With reduced motion only one frame is drawn, so a resize has to ask for a fresh one.
+    const resized = new ResizeObserver(resume);
     const onLost = (e: Event) => {
       e.preventDefault();
       cancelAnimationFrame(frame);
@@ -161,6 +167,7 @@ export function HeroGlass() {
     };
 
     observer.observe(c);
+    resized.observe(c);
     document.addEventListener("visibilitychange", resume);
     window.addEventListener("pointermove", onPointer, { passive: true });
     still.addEventListener("change", resume);
@@ -169,6 +176,7 @@ export function HeroGlass() {
     return () => {
       cancelAnimationFrame(frame);
       observer.disconnect();
+      resized.disconnect();
       document.removeEventListener("visibilitychange", resume);
       window.removeEventListener("pointermove", onPointer);
       still.removeEventListener("change", resume);
