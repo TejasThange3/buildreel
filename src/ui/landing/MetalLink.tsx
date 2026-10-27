@@ -2,28 +2,13 @@
 
 import { LiquidMetal } from "@paper-design/shaders-react";
 import Link from "next/link";
-import { type ReactNode, useState, useSyncExternalStore } from "react";
-import { useReducedMotion } from "./usePageState";
+import { type ReactNode, useState } from "react";
+import { useReducedMotion, useWebGL2 } from "./usePageState";
 
 const SIZE = {
   sm: "h-9 px-4 text-[13px]",
   md: "h-12 px-7 text-sm",
 };
-
-let webgl2: boolean | undefined;
-
-// Paper Shaders throws from an unawaited promise when WebGL2 is missing, so it is only mounted
-// after this check passes. The probe context is released straight away.
-function hasWebGL2(): boolean {
-  if (webgl2 === undefined) {
-    const gl = document.createElement("canvas").getContext("webgl2");
-    webgl2 = gl !== null;
-    gl?.getExtension("WEBGL_lose_context")?.loseContext();
-  }
-  return webgl2;
-}
-
-const noSubscribe = () => () => {};
 
 // A pill whose rim is liquid metal (Paper Shaders) with a dark face over it. Without WebGL2 the
 // CSS metal gradient under the shader is the rim.
@@ -38,7 +23,7 @@ export function MetalLink({
 }) {
   const [hover, setHover] = useState(false);
   const still = useReducedMotion();
-  const metal = useSyncExternalStore(noSubscribe, hasWebGL2, () => false);
+  const metal = useWebGL2();
 
   return (
     <Link
