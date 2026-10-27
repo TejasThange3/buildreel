@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useProject } from "@/state/store";
 import { DropZone } from "./DropZone";
+import { Player } from "./Player";
 import { SyncPanel } from "./SyncPanel";
 
 export default function Editor() {
@@ -17,7 +18,15 @@ export default function Editor() {
         </Link>
       </header>
       <main className="flex flex-1 flex-col">
-        {!hasProject ? <DropZone /> : !synced ? <SyncPanel /> : null}
+        {!hasProject ? (
+          <DropZone />
+        ) : !synced ? (
+          <SyncPanel />
+        ) : (
+          <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">
+            <Player />
+          </div>
+        )}
       </main>
     </div>
   );
