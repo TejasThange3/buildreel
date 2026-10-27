@@ -253,6 +253,8 @@ Phase 5 - UI and preview
 46. feat(ui): step list with keep and drop toggles
 47. feat(ui): timeline strip coloured by segment mode
 48. style(ui): base layout, type scale and colour tokens
+48a. feat(ui): landing page with liquid glass hero and editor link
+48b. style(ui): landing motion with reduced-motion support
 
 Phase 6 - steering
 49. feat(api): add openai-compatible llm helper
@@ -276,8 +278,6 @@ Phase 8 - deploy and sample
 63. chore(deploy): add llm and upstash env vars
 64. feat: add redacted sample project from real build session
 65. feat(ui): load sample project on first visit
-65a. feat(ui): landing page with sample reel hero and editor link
-65b. style(ui): landing motion with reduced-motion support
 66. docs: readme with live link, how it works and local setup
 
 Phase 9 - tier 2

@@ -398,6 +398,16 @@ buildreel/
 ```
 Estimated total: 2,500-3,200 lines including tests.
 
+### 8.1 Visual system (agreed with Tejas, 27 Oct)
+
+The landing page and the editor are both built in Phase 5 and share one system.
+- Dark only: the brand is a lit glass object on a near-black stage, so there is no light theme.
+- Colour: monochrome surfaces and text; the only colour is light passing through glass. One accent, coral, is reserved for voice: it marks where Wispr Flow types (the SteerBox). The WeMakeDevs and Wispr palette is otherwise not used, so Buildreel reads as its own product.
+- Type: Geist and Geist Mono (numbers, times, tool labels).
+- Glass: the landing hero is one custom WebGL fragment shader (refraction, dispersion, pointer response), no 3D library. Small glass controls use CSS (layered borders, highlights, backdrop blur) with a solid fallback. The hero canvas pauses off-screen and in hidden tabs and falls back to a still image for reduced motion or a missing WebGL context.
+- Motion: transform and opacity only, native scroll, no scroll hijacking, every animation explains a change.
+- Banned: icon-and-arrow card grids, gradient blobs, glow on every element, stock marketing phrases, emoji, em dashes in copy.
+
 ---
 
 ## 9. API contracts
