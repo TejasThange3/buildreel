@@ -51,9 +51,10 @@ const WIDE_CSS_PX = 1024;
 // The slab sits right of the headline on wide screens and above it on narrow ones.
 // Coordinates are GL pixels, origin bottom-left.
 function glassRect(w: number, h: number, wide: boolean): [number, number, number, number, number] {
-  const hw = wide ? Math.min(w * 0.19, h * 0.4) : Math.min(w * 0.38, h * 0.2);
+  // Stacked layouts size the slab from the height too, so it clears the headline on short screens.
+  const hw = wide ? Math.min(w * 0.19, h * 0.4) : Math.min(w * 0.38, h * 0.16);
   const hh = hw / 1.6;
-  return wide ? [w * 0.73, h * 0.5, hw, hh, hh * 0.22] : [w * 0.5, h * 0.72, hw, hh, hh * 0.22];
+  return wide ? [w * 0.73, h * 0.5, hw, hh, hh * 0.22] : [w * 0.5, h * 0.78, hw, hh, hh * 0.22];
 }
 
 export function HeroGlass() {
