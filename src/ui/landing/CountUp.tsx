@@ -32,7 +32,7 @@ export function CountUp({ seconds, unit }: { seconds: number; unit: keyof typeof
 
   return (
     <span ref={ref} className="tabular-nums">
-      {FORMAT[unit](seconds * progress)}
+      {FORMAT[unit](still ? seconds : seconds * progress)}
     </span>
   );
 }
