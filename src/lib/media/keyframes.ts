@@ -24,7 +24,7 @@ export function keyframeAt(times: number[], t: number): number | undefined {
 }
 
 export type KeyframeReader = {
-  frame: (keyT: number) => Promise<CanvasImageSource | undefined>;
+  frame: (keyT: number) => Promise<HTMLCanvasElement | OffscreenCanvas | undefined>;
   dispose: () => void;
 };
 
@@ -37,7 +37,7 @@ export async function openKeyframes(file: File, width: number): Promise<Keyframe
   const track = await input.getPrimaryVideoTrack();
   if (!track) throw new Error(`${file.name} has no video track.`);
   const sink = new CanvasSink(track, { width });
-  const cache = new Map<number, CanvasImageSource>();
+  const cache = new Map<number, HTMLCanvasElement | OffscreenCanvas>();
   return {
     frame: async (keyT) => {
       const hit = cache.get(keyT);

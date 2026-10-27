@@ -5,6 +5,7 @@ import { useEffect, useRef } from "react";
 import { formatTime } from "@/lib/format";
 import { keyframeAt, openKeyframes, type KeyframeReader } from "@/lib/media/keyframes";
 import { remap, type Remapped } from "@/lib/plan/remap";
+import { containRect } from "@/lib/render/contain";
 import { drawOverlay, type OverlayFonts } from "@/lib/render/drawOverlay";
 import { usePlayback } from "@/state/playback";
 import { useProject } from "@/state/store";
@@ -33,19 +34,33 @@ function seekIfFar(video: HTMLVideoElement, t: number, tolerance: number) {
   if (Math.abs(video.currentTime - t) > tolerance && !video.seeking) video.currentTime = t;
 }
 
-const isTimelapse = ({ segment }: Remapped) => segment.mode === "fast" && segment.speed > MAX_RATE;
-
-// Points the video at the frame the remap asks for; on entering a segment it always seeks.
-function steerVideo(video: HTMLVideoElement, r: Remapped, entered: boolean, playing: boolean) {
+// Points the video at the frame the remap asks for. A required seek (a new segment, or the clock
+// jumping because the user scrubbed) that cannot start while another seek runs is reported back
+// as still pending, so the next frame retries it. Returns whether a seek is still pending.
+function steerVideo(
+  video: HTMLVideoElement,
+  r: Remapped,
+  mustSeek: boolean,
+  playing: boolean,
+  timelapse: boolean,
+): boolean {
   const { segment, srcT } = r;
-  if (srcT === undefined || isTimelapse(r)) return video.pause();
+  if (srcT === undefined || timelapse) {
+    video.pause();
+    return false;
+  }
   const moving = playing && (segment.mode === "real" || segment.mode === "fast");
   video.muted = segment.mode !== "real";
-  video.playbackRate = segment.mode === "fast" ? segment.speed : 1;
-  if (entered || !moving) seekIfFar(video, srcT, entered ? 0 : 0.05);
+  video.playbackRate = segment.mode === "fast" ? Math.min(segment.speed, MAX_RATE) : 1;
+  let pending = false;
+  if (mustSeek) {
+    if (video.seeking) pending = true;
+    else video.currentTime = srcT;
+  } else if (!moving) seekIfFar(video, srcT, 0.05);
   else if (segment.mode === "real") seekIfFar(video, srcT, DRIFT_S);
   if (moving && video.paused) void video.play().catch(ignoreInterruptedPlay);
   if (!moving && !video.paused) video.pause();
+  return pending;
 }
 
 export function Player() {
@@ -56,14 +71,23 @@ export function Player() {
   const canvas = useRef<HTMLCanvasElement>(null);
   const clock = useRef<HTMLSpanElement>(null);
   const keyframes = useRef<KeyframeReader | undefined>(undefined);
+  // Set when keyframes cannot be read; fast-forwards then play the video at up to 16x instead.
+  const keyframesFailed = useRef(false);
 
   useEffect(() => {
     if (!recording) return;
     let open = true;
-    void openKeyframes(recording.file, KEYFRAME_WIDTH).then((reader) => {
-      if (open) keyframes.current = reader;
-      else reader.dispose();
-    });
+    keyframesFailed.current = false;
+    openKeyframes(recording.file, KEYFRAME_WIDTH).then(
+      (reader) => {
+        if (open) keyframes.current = reader;
+        else reader.dispose();
+      },
+      (error: unknown) => {
+        keyframesFailed.current = true;
+        reportError(error);
+      },
+    );
     return () => {
       open = false;
       keyframes.current?.dispose();
@@ -79,52 +103,76 @@ export function Player() {
     const fonts = readFonts();
     let lastSegment = "";
     let last = performance.now();
+    let lastT = usePlayback.getState().outT;
+    let pendingSeek = false;
     let frame = 0;
     // Timelapse state: the keyframe on screen and whether a decode is in flight. A new decode
-    // starts only when the last one lands, so the hop rate follows the device's decoder.
-    let image: CanvasImageSource | undefined;
+    // starts only when the last one lands, so the hop rate follows the device's decoder. Each
+    // segment entry bumps the epoch, so a decode started for an earlier segment is discarded.
+    let image: HTMLCanvasElement | OffscreenCanvas | undefined;
     let shownKey: number | undefined;
     let decoding = false;
+    let epoch = 0;
+
+    const isTimelapse = ({ segment }: Remapped) =>
+      segment.mode === "fast" && segment.speed > MAX_RATE && !keyframesFailed.current;
 
     const drawTimelapse = (srcT: number, w: number, h: number) => {
       const key = keyframeAt(recording.keyTimes, srcT);
       const reader = keyframes.current;
       if (key !== undefined && key !== shownKey && !decoding && reader) {
         decoding = true;
-        void reader
+        const requested = epoch;
+        reader
           .frame(key)
-          .then((next) => {
-            image = next ?? image;
-            shownKey = key;
-          })
+          .then(
+            (next) => {
+              if (requested !== epoch) return;
+              image = next ?? image;
+              shownKey = key;
+            },
+            (error: unknown) => {
+              keyframesFailed.current = true;
+              reportError(error);
+            },
+          )
           .finally(() => (decoding = false));
       }
-      if (image) ctx.drawImage(image, 0, 0, w, h);
+      if (image) ctx.drawImage(image, ...containRect(image.width, image.height, w, h));
     };
 
     const tick = (now: number) => {
       const { outT, playing, seek, setPlaying } = usePlayback.getState();
+      const dt = playing ? (now - last) / 1000 : 0;
       let t = outT;
       if (playing) {
-        t = Math.min(outT + (now - last) / 1000, edl.totalS);
+        t = Math.min(outT + dt, edl.totalS);
         if (t >= edl.totalS) setPlaying(false);
         seek(t);
       }
+      // A jump the clock did not make itself means the user scrubbed: the video must follow.
+      const jumped = Math.abs(outT - lastT) > 0.05;
       last = now;
+      lastT = t;
       const r = remap(edl, t);
       if (r) {
         const entered = r.segment.id !== lastSegment;
-        if (entered) image = undefined;
-        steerVideo(v, r, entered, playing);
+        if (entered) {
+          epoch++;
+          image = undefined;
+          shownKey = undefined;
+        }
+        const timelapse = isTimelapse(r);
+        pendingSeek = steerVideo(v, r, entered || jumped || pendingSeek, playing, timelapse);
         lastSegment = r.segment.id;
         const scale = Math.min(window.devicePixelRatio, 2);
         const w = Math.round(c.clientWidth * scale);
         const h = Math.round(c.clientHeight * scale);
         if (c.width !== w || c.height !== h) Object.assign(c, { width: w, height: h });
         ctx.clearRect(0, 0, w, h);
-        if (isTimelapse(r) && r.srcT !== undefined) drawTimelapse(r.srcT, w, h);
+        if (timelapse && r.srcT !== undefined) drawTimelapse(r.srcT, w, h);
         // Until the first keyframe lands, the paused video keeps showing the last frame.
-        const covered = r.segment.mode === "card" || (isTimelapse(r) && image !== undefined);
+        const covered = r.segment.mode === "card" || (timelapse && image !== undefined);
         v.style.visibility = covered ? "hidden" : "visible";
         drawOverlay(ctx, r.segment, r.local, r.srcT, fonts);
       }
