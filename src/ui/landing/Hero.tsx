@@ -5,7 +5,7 @@ import { HeroReel } from "./HeroReel";
 import { MetalLink } from "./MetalLink";
 import { SLAB_CLASS } from "./slab";
 
-const REPO_URL = "https://github.com/TejasThange3/buildreel";
+export const REPO_URL = "https://github.com/TejasThange3/buildreel";
 
 export function Hero() {
   return (
