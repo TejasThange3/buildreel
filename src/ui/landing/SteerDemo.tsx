@@ -80,14 +80,15 @@ export function SteerDemo() {
   const plan = done ? AFTER : BEFORE;
   return (
     <div ref={ref} className="mx-auto w-full max-w-2xl">
+      <p className="sr-only">
+        Example: the spoken sentence &ldquo;{SENTENCE}&rdquo; shortens a 90 second reel to 60
+        seconds and keeps the step where export worked.
+      </p>
       <div
         data-typing={typed > 0 && !done}
         className="rounded-full border border-line-strong bg-surface/80 px-5 py-3.5 shadow-[inset_0_1px_0_rgb(255_255_255/0.08)] backdrop-blur transition-[border-color,box-shadow] duration-300 data-[typing=true]:border-voice/60 data-[typing=true]:shadow-[0_0_0_4px_rgb(255_122_89/0.12),inset_0_1px_0_rgb(255_255_255/0.08)]"
       >
-        <p
-          className="truncate font-mono text-sm text-fg"
-          aria-label={`Spoken instruction: ${SENTENCE}`}
-        >
+        <p aria-hidden className="truncate font-mono text-sm text-fg">
           {SENTENCE.slice(0, typed)}
           <span aria-hidden className="ml-px inline-block h-4 w-px translate-y-0.5 bg-voice" />
         </p>
