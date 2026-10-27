@@ -67,7 +67,7 @@ Only short, redacted text (step titles, prompt excerpts, the instruction) ever l
               (Groq openai/gpt-oss-20b, strict json_schema; key held as a Vercel environment variable)
 ```
 
-One Next.js (App Router) project holds both sides. `/` is a static landing page whose hero glass plays a short sample reel drawn in HTML (prompt card, fast-forward, review; no video, no Mediabunny) and links to `/editor`. The editor page is a client component; Mediabunny is loaded client-only (dynamic import, no SSR). The only server code is the route handlers under `src/app/api/*`. The server never receives video.
+One Next.js (App Router) project holds both sides. `/` is a static landing page whose hero glass carries a frosted reel track with a moving playhead (HTML, no video, no Mediabunny) and links to `/editor`. The editor page is a client component; Mediabunny is loaded client-only (dynamic import, no SSR). The only server code is the route handlers under `src/app/api/*`. The server never receives video.
 
 Design principle: the deterministic pipeline (stages 1-8, 10) produces a complete reel with zero network calls. The LLM only improves titles and turns spoken instructions into structured ops. If the LLM is down, the app still works.
 
@@ -404,7 +404,7 @@ The landing page and the editor are both built in Phase 5 and share one system.
 - Dark only: the brand is a lit glass object on a near-black stage, so there is no light theme.
 - Colour: monochrome surfaces and text; the only colour is light passing through glass. One accent, coral, is reserved for voice: it marks where Wispr Flow types (the SteerBox). The WeMakeDevs and Wispr palette is otherwise not used, so Buildreel reads as its own product.
 - Type: Geist and Geist Mono (numbers, times, tool labels).
-- Glass: the landing hero is one custom WebGL fragment shader (refraction, dispersion, pointer response), no 3D library. Small glass controls use CSS (layered borders, highlights, backdrop blur) with a solid fallback. The editor links are liquid metal pills: Paper Shaders `LiquidMetal` on a 2.5 px rim, over a CSS metal gradient for browsers without WebGL2. A logo mark (a cut B: coral prompt bar, two segment pills) heads the nav, footer and editor. The hero canvas pauses off-screen and in hidden tabs and falls back to a still image for reduced motion or a missing WebGL context.
+- Glass: the landing hero is one custom WebGL fragment shader (refraction, dispersion, pointer response), no 3D library. Small glass controls use CSS (layered borders, highlights, backdrop blur) with a solid fallback. The editor links are liquid metal pills: Paper Shaders `LiquidMetal` on a 2.5 px rim, over a CSS metal gradient for browsers without WebGL2. A logo mark (a cut B: coral prompt bar, two segment pills) heads the nav, footer and editor. The footer ends on the word Buildreel in the same liquid metal, flowing inside the glyphs. The hero canvas pauses off-screen and in hidden tabs and falls back to a still image for reduced motion or a missing WebGL context.
 - Motion: transform and opacity only, native scroll, no scroll hijacking, every animation explains a change.
 - Banned: icon-and-arrow card grids, gradient blobs, glow on every element, stock marketing phrases, emoji, em dashes in copy.
 
