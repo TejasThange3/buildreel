@@ -1,13 +1,20 @@
 import { create } from "zustand";
 import { parseClaudeLogs } from "@/lib/log/parseClaudeLog";
 import { activityTrack, readPacketSizes } from "@/lib/media/activity";
+import { keyframeTimes } from "@/lib/media/keyframes";
 import { probeVideo } from "@/lib/media/probe";
 import { planReel } from "@/lib/plan/autoPlan";
 import { alignEvents } from "@/lib/timeline/align";
 import { buildSteps } from "@/lib/timeline/steps";
 import type { ActivityTrack, Constraints, EDL, ParsedLog, Step, VideoProbe } from "@/shared/types";
 
-export type Recording = { file: File; url: string; probe: VideoProbe; activity: ActivityTrack };
+export type Recording = {
+  file: File;
+  url: string;
+  probe: VideoProbe;
+  activity: ActivityTrack;
+  keyTimes: number[];
+};
 
 type Derived = { steps: Step[]; droppedSteps: number; edl: EDL };
 
@@ -54,8 +61,15 @@ const isLog = (file: File) => file.name.toLowerCase().endsWith(".jsonl");
 
 async function readRecording(file: File): Promise<Recording> {
   const probe = await probeVideo(file);
-  const activity = activityTrack(await readPacketSizes(file), probe.durationS);
-  return { file, url: URL.createObjectURL(file), probe, activity };
+  const packets = await readPacketSizes(file);
+  const activity = activityTrack(packets, probe.durationS);
+  return {
+    file,
+    url: URL.createObjectURL(file),
+    probe,
+    activity,
+    keyTimes: keyframeTimes(packets),
+  };
 }
 
 export const useProject = create<ProjectState>()((set, get) => {
