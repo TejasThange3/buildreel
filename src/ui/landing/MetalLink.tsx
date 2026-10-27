@@ -2,15 +2,31 @@
 
 import { LiquidMetal } from "@paper-design/shaders-react";
 import Link from "next/link";
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useState, useSyncExternalStore } from "react";
+import { useReducedMotion } from "./usePageState";
 
 const SIZE = {
   sm: "h-9 px-4 text-[13px]",
   md: "h-12 px-7 text-sm",
 };
 
-// A pill whose rim is liquid metal (Paper Shaders) with a dark face over it. The gradient under
-// the shader is what shows when WebGL2 is missing, since Paper Shaders then never draws.
+let webgl2: boolean | undefined;
+
+// Paper Shaders throws from an unawaited promise when WebGL2 is missing, so it is only mounted
+// after this check passes. The probe context is released straight away.
+function hasWebGL2(): boolean {
+  if (webgl2 === undefined) {
+    const gl = document.createElement("canvas").getContext("webgl2");
+    webgl2 = gl !== null;
+    gl?.getExtension("WEBGL_lose_context")?.loseContext();
+  }
+  return webgl2;
+}
+
+const noSubscribe = () => () => {};
+
+// A pill whose rim is liquid metal (Paper Shaders) with a dark face over it. Without WebGL2 the
+// CSS metal gradient under the shader is the rim.
 export function MetalLink({
   href,
   children,
@@ -21,15 +37,8 @@ export function MetalLink({
   size?: keyof typeof SIZE;
 }) {
   const [hover, setHover] = useState(false);
-  const [still, setStill] = useState(true);
-
-  useEffect(() => {
-    const query = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const update = () => setStill(query.matches);
-    update();
-    query.addEventListener("change", update);
-    return () => query.removeEventListener("change", update);
-  }, []);
+  const still = useReducedMotion();
+  const metal = useSyncExternalStore(noSubscribe, hasWebGL2, () => false);
 
   return (
     <Link
@@ -42,21 +51,23 @@ export function MetalLink({
         aria-hidden
         className="absolute inset-0 -z-20 overflow-hidden rounded-full bg-[linear-gradient(120deg,#6b6b72,#e8e8ec_35%,#8a8a92_55%,#f4f4f6_75%,#77777e)]"
       >
-        <LiquidMetal
-          className="size-full"
-          colorBack="#8e8e94"
-          colorTint="#ffffff"
-          shape="none"
-          repetition={4}
-          softness={0.45}
-          shiftRed={0.3}
-          shiftBlue={0.3}
-          distortion={0.12}
-          contour={0.2}
-          angle={70}
-          scale={1}
-          speed={still ? 0 : hover ? 1.6 : 0.6}
-        />
+        {metal && (
+          <LiquidMetal
+            className="size-full"
+            colorBack="#8e8e94"
+            colorTint="#ffffff"
+            shape="none"
+            repetition={4}
+            softness={0.45}
+            shiftRed={0.3}
+            shiftBlue={0.3}
+            distortion={0.12}
+            contour={0.2}
+            angle={70}
+            scale={1}
+            speed={still ? 0 : hover ? 1.6 : 0.6}
+          />
+        )}
       </span>
       <span
         aria-hidden
