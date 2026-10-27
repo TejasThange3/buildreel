@@ -139,7 +139,8 @@ export function HeroGlass() {
     const loop = (now: number) => {
       frame = 0;
       if (!onScreen || document.hidden) return;
-      if (now - last >= FRAME_MS - 1) {
+      // A still (reduced motion) frame is drawn whenever it is asked for; only animation is capped.
+      if (still.matches || now - last >= FRAME_MS - 1) {
         last = now;
         draw(now);
       }

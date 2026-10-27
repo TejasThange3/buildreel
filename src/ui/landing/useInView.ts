@@ -12,7 +12,8 @@ export function useInView<T extends Element>(amount = 0.35, once = true) {
     if (!el) return;
     const observer = new IntersectionObserver(
       ([entry]) => {
-        const visible = entry?.isIntersecting ?? false;
+        // isIntersecting is true for any overlap, so the ratio decides when amount was given.
+        const visible = !!entry?.isIntersecting && entry.intersectionRatio >= amount;
         if (once && !visible) return;
         setInView(visible);
         if (once) observer.disconnect();
