@@ -74,7 +74,7 @@ export function Closing() {
             </p>
           </div>
         </div>
-        <div className="mx-auto max-w-7xl px-4 pb-8 [container-type:inline-size] sm:px-6">
+        <div className="mx-auto max-w-7xl px-4 pb-8 sm:px-6">
           <FooterWordmark />
         </div>
       </footer>
