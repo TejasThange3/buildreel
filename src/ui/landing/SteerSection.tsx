@@ -6,7 +6,7 @@ const EXAMPLES = [
   { said: "keep the step where export worked", does: "Pins step 4" },
   { said: "skip the setup steps", does: "Drops steps 1 and 2" },
   { said: "linger on the tests passing", does: "More real time on that step" },
-  { said: "call step 3 the sync fix", does: "Renames its title card" },
+  { said: "call step 3 the sync fix", does: "Retitles that step" },
 ];
 
 export function SteerSection() {

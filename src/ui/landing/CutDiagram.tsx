@@ -44,7 +44,7 @@ function band(rawFrom: number, rawTo: number, reelFrom: number, reelTo: number) 
 const PARTS: { mode: Segment["mode"]; value: string; label: string; text: string }[] = [
   { mode: "card", value: "2.5 s", label: "Title", text: 'Opens on "How I built it"' },
   { mode: "hold", value: "5 s", label: "Prompt", text: "Your prompt, as you dictated it" },
-  { mode: "fast", value: "532x", label: "Agent", text: "26 min of work, every tool call shown" },
+  { mode: "fast", value: "532x", label: "Agent", text: "26 min of work, with its tool calls" },
   {
     mode: "real",
     value: "1x",
