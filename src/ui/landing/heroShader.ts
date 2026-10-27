@@ -64,9 +64,9 @@ float sdRoundBox(vec2 p, vec2 b, float r) {
 // Approximate visible-spectrum colour for t in 0..1 (violet to red), summing to white.
 vec3 spectrum(float t) {
   vec3 c = vec3(
-    smoothstep(0.45, 0.85, t) + 0.35 * smoothstep(0.15, 0.0, t),
-    smoothstep(0.15, 0.5, t) * smoothstep(0.95, 0.6, t),
-    smoothstep(0.55, 0.15, t)
+    smoothstep(0.45, 0.85, t) + 0.35 * (1.0 - smoothstep(0.0, 0.15, t)),
+    smoothstep(0.15, 0.5, t) * (1.0 - smoothstep(0.6, 0.95, t)),
+    1.0 - smoothstep(0.15, 0.55, t)
   );
   return c;
 }
