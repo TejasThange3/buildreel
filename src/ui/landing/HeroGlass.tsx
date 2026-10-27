@@ -57,13 +57,28 @@ function glassRect(w: number, h: number, wide: boolean): [number, number, number
   return wide ? [w * 0.73, h * 0.5, hw, hh, hh * 0.22] : [w * 0.5, h * 0.78, hw, hh, hh * 0.22];
 }
 
+// Compiling the shader is the page's longest task, so it waits for idle time: the headline (the
+// LCP element) paints first and the glass fades in a beat later. Safari has no
+// requestIdleCallback, hence the timer.
+function whenIdle(run: () => void): () => void {
+  if ("requestIdleCallback" in window) {
+    const id = window.requestIdleCallback(run, { timeout: 1500 });
+    return () => window.cancelIdleCallback(id);
+  }
+  const id = setTimeout(run, 200);
+  return () => clearTimeout(id);
+}
+
 export function HeroGlass() {
   const canvas = useRef<HTMLCanvasElement>(null);
   const [failed, setFailed] = useState(false);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => whenIdle(() => setReady(true)), []);
 
   useEffect(() => {
     const c = canvas.current;
-    if (!c) return;
+    if (!c || !ready) return;
     const gl = c.getContext("webgl", {
       antialias: false,
       alpha: false,
@@ -114,6 +129,7 @@ export function HeroGlass() {
       gl.uniform4f(uniforms.glass, gx, gy, hw, hh);
       gl.uniform1f(uniforms.radius, r);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
+      c.style.opacity = "1";
     };
 
     const loop = (now: number) => {
@@ -158,11 +174,15 @@ export function HeroGlass() {
       still.removeEventListener("change", resume);
       c.removeEventListener("webglcontextlost", onLost);
     };
-  }, []);
+  }, [ready]);
 
   if (failed) return <HeroGlassFallback />;
   return (
-    <canvas ref={canvas} aria-hidden className="pointer-events-none absolute inset-0 size-full" />
+    <canvas
+      ref={canvas}
+      aria-hidden
+      className="pointer-events-none absolute inset-0 size-full opacity-0 transition-opacity duration-700"
+    />
   );
 }
 
