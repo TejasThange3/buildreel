@@ -46,7 +46,8 @@ function setup(gl: WebGLRenderingContext): Uniforms {
   };
 }
 
-// Matches the CSS lg breakpoint, where the hero text moves to the left column.
+// Matches the CSS lg breakpoint, where the hero text moves to the left column. The canvas width is
+// read unrounded, as the container query in slab.ts sees it.
 const WIDE_CSS_PX = 1024;
 
 // The slab sits right of the headline on wide screens and above it on narrow ones.
@@ -127,7 +128,7 @@ export function HeroGlass() {
       const ty = idle ? 0.3 * Math.cos(t * 0.23) : pointer.y;
       tilt.x += (tx - tilt.x) * 0.06;
       tilt.y += (ty - tilt.y) * 0.06;
-      const [gx, gy, hw, hh, r] = glassRect(w, h, c.clientWidth >= WIDE_CSS_PX);
+      const [gx, gy, hw, hh, r] = glassRect(w, h, c.getBoundingClientRect().width >= WIDE_CSS_PX);
       gl.uniform2f(uniforms.res, w, h);
       gl.uniform1f(uniforms.time, t);
       gl.uniform2f(uniforms.tilt, tilt.x, tilt.y);
