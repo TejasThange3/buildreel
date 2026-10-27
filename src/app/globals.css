@@ -43,9 +43,13 @@ body {
   }
 }
 
+/* Moves a full-width track, so its playhead crosses without animating layout. */
 @keyframes sweep {
+  from {
+    transform: translateX(0);
+  }
   to {
-    left: 100%;
+    transform: translateX(100%);
   }
 }
 

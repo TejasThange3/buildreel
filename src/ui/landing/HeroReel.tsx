@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { SEGMENT_CLASS } from "../segmentStyle";
 import { useInView } from "./useInView";
+import { usePageVisible, useReducedMotion } from "./usePageState";
 
 // What a Buildreel reel looks like, played inside the hero glass: the dictated prompt, the agent's
 // work fast-forwarded, then the result in real time. Text is sized in cqw of the slab so it scales
@@ -17,13 +18,17 @@ const TOOLS = ["Edit Timeline.tsx", "Bash npm test", "Edit segmentStyle.ts", "Re
 
 export function HeroReel() {
   const [ref, inView] = useInView<HTMLDivElement>(0.2, false);
+  const visible = usePageVisible();
+  const still = useReducedMotion();
   const [phase, setPhase] = useState(0);
+  // Pausing drops the progress animation, so resuming restarts it together with a full timer.
+  const playing = inView && visible && !still;
 
   useEffect(() => {
-    if (!inView || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (!playing) return;
     const id = window.setTimeout(() => setPhase((p) => (p + 1) % PHASES.length), PHASES[phase]?.ms);
     return () => window.clearTimeout(id);
-  }, [inView, phase]);
+  }, [playing, phase]);
 
   const show = (i: number) =>
     `absolute inset-0 transition-[opacity,transform] duration-500 ease-[var(--ease-out-expo)] ${
@@ -55,7 +60,7 @@ export function HeroReel() {
           <div className="flex h-full flex-col px-[4cqw] pt-[3.5cqw]">
             <div className="flex items-baseline justify-between font-mono text-[2.6cqw] text-fg-subtle">
               <span>Agent working</span>
-              <span className="text-[5cqw] font-semibold text-fg tabular-nums">32x</span>
+              <span className="text-[5cqw] font-semibold text-fg tabular-nums">280x</span>
             </div>
             <ul className="mt-[2cqw] flex flex-wrap gap-[1.2cqw]">
               {TOOLS.map((tool, i) => (
@@ -98,10 +103,12 @@ export function HeroReel() {
                   ),
                 )}
                 <div
-                  className={`absolute -inset-y-[0.8cqw] left-0 w-[0.4cqw] rounded-full bg-fg ${
-                    phase === 2 ? "animate-[sweep_2600ms_linear_both]" : ""
+                  className={`absolute -inset-y-[0.8cqw] inset-x-0 ${
+                    playing && phase === 2 ? "animate-[sweep_2600ms_linear_both]" : ""
                   }`}
-                />
+                >
+                  <div className="h-full w-[0.4cqw] rounded-full bg-fg" />
+                </div>
               </div>
             </div>
             <p className="mt-auto pb-[2cqw] font-mono text-[2.4cqw] text-fg-subtle">
@@ -117,8 +124,8 @@ export function HeroReel() {
             {/* The active part runs a fill animation, which restarts each time it becomes active. */}
             <div
               style={{
-                transform: `scaleX(${i < phase ? 1 : 0})`,
-                animation: i === phase ? `fill-x ${ms}ms linear forwards` : undefined,
+                transform: `scaleX(${i < phase || (still && i === phase) ? 1 : 0})`,
+                animation: playing && i === phase ? `fill-x ${ms}ms linear forwards` : undefined,
               }}
               className={`h-full origin-left ${SEGMENT_CLASS[mode]}`}
             />
