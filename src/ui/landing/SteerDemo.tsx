@@ -62,14 +62,15 @@ function barStyle({ before, after }: Bar, done: boolean) {
   };
 }
 
-export function SteerDemo() {
-  const [ref, inView] = useInView<HTMLDivElement>(0.4, false);
+// Types the sentence, holds the re-planned reel, then starts over while the section is on screen.
+// The section owns this so its example list can light up what the sentence applied.
+export function useSteerTyping() {
+  const [ref, inView] = useInView<HTMLElement>(0.3, false);
   const still = useReducedMotion();
   const [typed, setTyped] = useState(0);
   // With reduced motion the demo shows only its final state.
   const done = still || typed >= SENTENCE.length;
 
-  // Types the sentence, holds the re-planned reel, then starts over while the demo is on screen.
   useEffect(() => {
     if (!inView || still) return;
     const id = window.setTimeout(
@@ -79,19 +80,22 @@ export function SteerDemo() {
     return () => window.clearTimeout(id);
   }, [inView, still, typed, done]);
 
+  return { ref, typed, done };
+}
+
+const MAC_DOTS = ["bg-[#ff5f57]", "bg-[#febc2e]", "bg-[#28c840]"];
+
+export function SteerDemo({ typed, done }: { typed: number; done: boolean }) {
   return (
-    <div
-      ref={ref}
-      className="overflow-hidden rounded-[var(--radius-panel)] border border-line-strong bg-canvas/70 shadow-[inset_0_1px_0_rgb(255_255_255/0.06),0_40px_80px_-20px_rgb(0_0_0/0.6)] backdrop-blur"
-    >
+    <div className="overflow-hidden rounded-[var(--radius-panel)] border border-line-strong bg-canvas/70 shadow-[inset_0_1px_0_rgb(255_255_255/0.06),0_40px_80px_-20px_rgb(0_0_0/0.6)] backdrop-blur">
       <p className="sr-only">
         Example: the spoken sentence &ldquo;{SENTENCE}&rdquo; shortens a 90 second reel to 60
         seconds, gives the export step more real time and drops two short reviews.
       </p>
       <div aria-hidden>
         <div className="flex items-center gap-1.5 border-b border-line px-4 py-3">
-          {[0, 1, 2].map((dot) => (
-            <span key={dot} className="size-2.5 rounded-full bg-white/12" />
+          {MAC_DOTS.map((dot) => (
+            <span key={dot} className={`size-3 rounded-full ${dot}`} />
           ))}
           <span className="ml-3 font-mono text-xs text-fg-subtle">Buildreel editor</span>
           <span className="ml-auto font-mono text-xs text-fg-subtle tabular-nums">
