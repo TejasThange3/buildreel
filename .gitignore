@@ -43,3 +43,6 @@ next-env.d.ts
 
 # screen recordings (OBS output)
 /Videos/
+
+# local preview config for the Claude desktop app
+/.claude/launch.json
