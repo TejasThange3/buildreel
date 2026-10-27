@@ -1,5 +1,9 @@
-import Link from "next/link";
+import { GithubLogoIcon } from "@phosphor-icons/react/dist/ssr";
+import { Logo } from "../Logo";
 import { HeroGlass } from "./HeroGlass";
+import { MetalLink } from "./MetalLink";
+
+const REPO_URL = "https://github.com/TejasThange3/buildreel";
 
 export function Hero() {
   return (
@@ -11,20 +15,18 @@ export function Hero() {
         className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_top,var(--color-canvas)_8%,transparent_55%)] lg:bg-[linear-gradient(to_right,rgb(10_10_12/0.85)_20%,transparent_58%)]"
       />
       <nav className="relative mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-4 sm:px-6">
-        <span className="text-sm font-semibold tracking-tight">Buildreel</span>
-        <div className="flex items-center gap-5 text-sm">
+        <Logo />
+        <div className="flex items-center gap-2">
           <a
-            href="https://github.com/TejasThange3/buildreel"
-            className="text-fg-muted transition-colors hover:text-fg"
+            href={REPO_URL}
+            className="inline-flex h-9 items-center gap-2 rounded-full border border-line bg-white/[0.03] px-3.5 text-[13px] text-fg-muted backdrop-blur transition-colors hover:border-line-strong hover:text-fg"
           >
-            GitHub
+            <GithubLogoIcon aria-hidden className="size-4" />
+            <span className="max-sm:sr-only">GitHub</span>
           </a>
-          <Link
-            href="/editor"
-            className="rounded-full border border-line-strong px-4 py-1.5 font-medium transition-colors hover:bg-white/5"
-          >
+          <MetalLink href="/editor" size="sm">
             Open the editor
-          </Link>
+          </MetalLink>
         </div>
       </nav>
       <div className="relative mx-auto flex w-full max-w-7xl flex-1 flex-col justify-end px-4 pb-14 sm:px-6 lg:justify-center lg:pb-0">
@@ -37,15 +39,10 @@ export function Hero() {
             you dictated and fast-forwards the rest.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
-            <Link
-              href="/editor"
-              className="inline-flex h-11 items-center rounded-full bg-fg px-6 text-sm font-medium text-canvas transition-transform duration-150 active:scale-[0.97]"
-            >
-              Open the editor
-            </Link>
+            <MetalLink href="/editor">Open the editor</MetalLink>
             <a
               href="#how"
-              className="inline-flex h-11 items-center rounded-full px-5 text-sm font-medium text-fg-muted transition-colors hover:text-fg"
+              className="inline-flex h-12 items-center rounded-full px-5 text-sm font-medium text-fg-muted transition-colors hover:text-fg"
             >
               See how it works
             </a>
