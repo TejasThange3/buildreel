@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { Segment } from "@/shared/types";
 import { SEGMENT_CLASS } from "../segmentStyle";
 import { useInView } from "./useInView";
+import { useReducedMotion } from "./usePageState";
 
 const SENTENCE = "make it a minute and keep the step where export worked";
 const TYPE_MS = 38;
@@ -63,23 +64,20 @@ function barStyle({ before, after }: Bar, done: boolean) {
 
 export function SteerDemo() {
   const [ref, inView] = useInView<HTMLDivElement>(0.4, false);
+  const still = useReducedMotion();
   const [typed, setTyped] = useState(0);
-  const done = typed >= SENTENCE.length;
+  // With reduced motion the demo shows only its final state.
+  const done = still || typed >= SENTENCE.length;
 
   // Types the sentence, holds the re-planned reel, then starts over while the demo is on screen.
   useEffect(() => {
-    if (!inView) return;
-    const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (still) {
-      const id = requestAnimationFrame(() => setTyped(SENTENCE.length));
-      return () => cancelAnimationFrame(id);
-    }
+    if (!inView || still) return;
     const id = window.setTimeout(
       () => setTyped((n) => (n >= SENTENCE.length ? 0 : n + 1)),
       done ? HOLD_MS : TYPE_MS,
     );
     return () => window.clearTimeout(id);
-  }, [inView, typed, done]);
+  }, [inView, still, typed, done]);
 
   return (
     <div
@@ -107,7 +105,7 @@ export function SteerDemo() {
             className="rounded-full border border-line-strong bg-surface px-5 py-3.5 shadow-[inset_0_1px_0_rgb(255_255_255/0.08)] transition-[border-color,box-shadow] duration-300 data-[typing=true]:border-voice/60 data-[typing=true]:shadow-[0_0_0_4px_rgb(255_122_89/0.12),inset_0_1px_0_rgb(255_255_255/0.08)]"
           >
             <p className="truncate font-mono text-sm text-fg">
-              {SENTENCE.slice(0, typed)}
+              {done ? SENTENCE : SENTENCE.slice(0, typed)}
               <span className="ml-px inline-block h-4 w-px translate-y-0.5 bg-voice" />
             </p>
           </div>
@@ -120,7 +118,7 @@ export function SteerDemo() {
               <div
                 key={i}
                 style={barStyle(bar, done)}
-                className={`absolute inset-y-0 origin-left border-r border-canvas transition-transform duration-700 ease-[var(--ease-out-expo)] ${SEGMENT_CLASS[bar.mode]}`}
+                className={`absolute inset-y-0 origin-left border-r border-canvas transition-transform duration-700 ease-[var(--ease-out-expo)] motion-reduce:transition-none ${SEGMENT_CLASS[bar.mode]}`}
               />
             ))}
           </div>
