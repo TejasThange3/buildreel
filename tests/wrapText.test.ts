@@ -26,6 +26,10 @@ describe("wrapText", () => {
     expect(wrapText(mono, "abcdefghijklmnop", 5, 1)).toEqual(["abcd…"]);
   });
 
+  it("returns nothing when no lines are allowed", () => {
+    expect(wrapText(mono, "a b c", 1, 0)).toEqual([]);
+  });
+
   it("keeps astral characters whole when splitting", () => {
     const lines = wrapText(mono, "\u{10400}".repeat(7), 3, 5);
     expect(lines).toEqual(["\u{10400}".repeat(3), "\u{10400}".repeat(3), "\u{10400}"]);

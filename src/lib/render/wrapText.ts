@@ -26,6 +26,7 @@ export function wrapText(
   maxWidth: number,
   maxLines: number,
 ): string[] {
+  if (maxLines <= 0) return [];
   const lines: string[] = [];
   for (const paragraph of text.split("\n")) {
     let line = "";
