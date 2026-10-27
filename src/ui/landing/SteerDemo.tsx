@@ -58,7 +58,7 @@ const AFTER: [Mode, number][] = [
 ];
 
 export function SteerDemo() {
-  const [ref, inView] = useInView<HTMLDivElement>(0.5);
+  const [ref, inView] = useInView<HTMLDivElement>(0.5, false);
   const [typed, setTyped] = useState(0);
   const done = typed >= SENTENCE.length;
 
@@ -77,7 +77,6 @@ export function SteerDemo() {
     return () => window.clearTimeout(id);
   }, [inView, typed, done]);
 
-  const plan = done ? AFTER : BEFORE;
   return (
     <div ref={ref} className="mx-auto w-full max-w-2xl">
       <p className="sr-only">
@@ -98,17 +97,22 @@ export function SteerDemo() {
         {done ? "Applied: length 60 s, keep step 4" : ""}
       </p>
 
-      <div
-        className="mt-6 flex h-9 gap-px overflow-hidden rounded-[var(--radius-chip)]"
-        aria-hidden
-      >
-        {plan.map(([mode, seconds], i) => (
+      {/* Both plans are drawn and crossfade, so the change animates only opacity. */}
+      <div className="relative mt-6 h-9" aria-hidden>
+        {[BEFORE, AFTER].map((plan, p) => (
           <div
-            key={i}
-            style={{ flexGrow: seconds }}
-            // flex-grow is a layout property, but on a 20-cell strip it is cheap and it is the change.
-            className={`h-full basis-0 transition-[flex-grow] duration-700 ease-[var(--ease-out-expo)] ${SEGMENT_CLASS[mode]}`}
-          />
+            key={p}
+            style={{ opacity: (p === 1) === done ? 1 : 0 }}
+            className="absolute inset-0 flex gap-px overflow-hidden rounded-[var(--radius-chip)] transition-opacity duration-500 ease-[var(--ease-out-expo)]"
+          >
+            {plan.map(([mode, seconds], i) => (
+              <div
+                key={i}
+                style={{ flexGrow: seconds }}
+                className={`h-full basis-0 ${SEGMENT_CLASS[mode]}`}
+              />
+            ))}
+          </div>
         ))}
       </div>
       <div className="mt-2 flex justify-between font-mono text-xs text-fg-subtle tabular-nums">
