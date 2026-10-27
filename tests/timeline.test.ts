@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { parseClaudeLogs } from "@/lib/log/parseClaudeLog";
-import { alignEvents } from "@/lib/timeline/align";
+import { alignEvents, offsetFor, syncPrompt } from "@/lib/timeline/align";
 import { buildSteps } from "@/lib/timeline/steps";
 import type { AlignedEvent } from "@/shared/types";
 
@@ -211,5 +211,36 @@ describe("buildSteps", () => {
     expect(partial.steps[0]?.reviewActivity).toBeCloseTo(0.01 / 0.51, 9);
     const empty = buildSteps([prompt(0, "go"), turnEnd(0.25), prompt(0.25, "next")], 1, [1, 0]);
     expect(empty.steps[0]?.reviewActivity).toBe(0);
+  });
+});
+
+describe("sync calibration", () => {
+  const p = (at: number, text: string) => ({ kind: "prompt" as const, at, text, sessionId: "s" });
+  const startedAt = 1_000_000;
+
+  it("calibrates on the first prompt inside the recording", () => {
+    const events = [
+      p(startedAt - 2000, "before"),
+      p(startedAt + 20_000, "inside"),
+      p(startedAt + 40_000, "later"),
+    ];
+    expect(syncPrompt(events, startedAt, 60)?.text).toBe("inside");
+  });
+
+  it("falls back to the prompt closest to the recording when none is inside", () => {
+    const events = [
+      p(startedAt - 90_000, "far"),
+      p(startedAt - 3000, "near"),
+      p(startedAt + 200_000, "after"),
+    ];
+    expect(syncPrompt(events, startedAt, 60)?.text).toBe("near");
+    expect(syncPrompt([], startedAt, 60)).toBeUndefined();
+  });
+
+  it("puts the chosen prompt exactly on the marked frame", () => {
+    const prompt = p(startedAt + 20_000, "inside");
+    const offset = offsetFor(prompt, startedAt, 30);
+    expect(offset).toBe(10);
+    expect(alignEvents([prompt], startedAt, offset)[0]?.t).toBe(30);
   });
 });
