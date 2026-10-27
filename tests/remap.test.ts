@@ -75,4 +75,23 @@ describe("stepStarts", () => {
     expect(stepStarts(edl)).toEqual(new Map([[1, 2]]));
     expect(stepStarts({ segments: [], totalS: 0 }).size).toBe(0);
   });
+
+  it("starts each of several steps at its first shown segment and skips empty ones", () => {
+    const reel: EDL = {
+      segments: [
+        { id: "intro", mode: "card", outDur: 2 },
+        { id: "1-real", step: 1, mode: "real", src: [5, 5], outDur: 0 },
+        { id: "2-hold", step: 2, mode: "hold", srcT: 10, outDur: 3 },
+        { id: "2-fast", step: 2, mode: "fast", src: [10, 40], speed: 10, outDur: 3 },
+        { id: "4-hold", step: 4, mode: "hold", srcT: 90, outDur: 2 },
+      ],
+      totalS: 10,
+    };
+    expect(stepStarts(reel)).toEqual(
+      new Map([
+        [2, 2],
+        [4, 8],
+      ]),
+    );
+  });
 });
