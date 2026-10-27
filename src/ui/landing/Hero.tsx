@@ -1,5 +1,6 @@
-import { GithubLogoIcon } from "@phosphor-icons/react/dist/ssr";
+import { ArrowDownIcon, GithubLogoIcon } from "@phosphor-icons/react/dist/ssr";
 import { Logo } from "../Logo";
+import { GlassLink } from "./GlassLink";
 import { HeroGlass } from "./HeroGlass";
 import { HeroReel } from "./HeroReel";
 import { MetalLink } from "./MetalLink";
@@ -27,13 +28,10 @@ export function Hero() {
       <nav className="relative mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-4 sm:px-6">
         <Logo />
         <div className="flex items-center gap-2">
-          <a
-            href={REPO_URL}
-            className="inline-flex h-9 items-center gap-2 rounded-full border border-line bg-white/[0.03] px-3.5 text-[13px] text-fg-muted backdrop-blur transition-colors hover:border-line-strong hover:text-fg"
-          >
-            <GithubLogoIcon aria-hidden className="size-4" />
+          <GlassLink href={REPO_URL} size="sm">
+            <GithubLogoIcon aria-hidden weight="fill" className="size-4" />
             <span className="max-sm:sr-only">GitHub</span>
-          </a>
+          </GlassLink>
           <MetalLink href="/editor" size="sm">
             Open the editor
           </MetalLink>
@@ -48,14 +46,15 @@ export function Hero() {
             Drop your recording and Claude Code logs. Buildreel captions every step with the prompt
             you dictated and fast-forwards the rest.
           </p>
-          <div className="mt-8 flex flex-wrap items-center gap-3">
+          <div className="mt-8 grid gap-3 sm:flex sm:items-center">
             <MetalLink href="/editor">Open the editor</MetalLink>
-            <a
-              href="#how"
-              className="inline-flex h-12 items-center rounded-full px-5 text-sm font-medium text-fg-muted transition-colors hover:text-fg"
-            >
+            <GlassLink href="#how">
               See how it works
-            </a>
+              <ArrowDownIcon
+                aria-hidden
+                className="size-4 transition-transform duration-200 group-hover:translate-y-0.5"
+              />
+            </GlassLink>
           </div>
         </div>
       </div>
