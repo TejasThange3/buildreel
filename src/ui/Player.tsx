@@ -49,14 +49,17 @@ function steerVideo(
     video.pause();
     return false;
   }
-  const moving = playing && (segment.mode === "real" || segment.mode === "fast");
+  // Without keyframes, a fast-forward faster than the browser can play hops: the video pauses
+  // and seeks to each new source time as soon as the previous seek lands.
+  const hopping = segment.mode === "fast" && segment.speed > MAX_RATE;
+  const moving = playing && (segment.mode === "real" || segment.mode === "fast") && !hopping;
   video.muted = segment.mode !== "real";
-  video.playbackRate = segment.mode === "fast" ? Math.min(segment.speed, MAX_RATE) : 1;
+  video.playbackRate = segment.mode === "fast" && !hopping ? segment.speed : 1;
   let pending = false;
   if (mustSeek) {
     if (video.seeking) pending = true;
     else video.currentTime = srcT;
-  } else if (!moving) seekIfFar(video, srcT, 0.05);
+  } else if (hopping || !moving) seekIfFar(video, srcT, 0.05);
   else if (segment.mode === "real") seekIfFar(video, srcT, DRIFT_S);
   if (moving && video.paused) void video.play().catch(ignoreInterruptedPlay);
   if (!moving && !video.paused) video.pause();
@@ -84,6 +87,7 @@ export function Player() {
         else reader.dispose();
       },
       (error: unknown) => {
+        if (!open) return;
         keyframesFailed.current = true;
         reportError(error);
       },
@@ -103,7 +107,7 @@ export function Player() {
     const fonts = readFonts();
     let lastSegment = "";
     let last = performance.now();
-    let lastT = usePlayback.getState().outT;
+    let lastSeekId = usePlayback.getState().seekId;
     let pendingSeek = false;
     let frame = 0;
     // Timelapse state: the keyframe on screen and whether a decode is in flight. A new decode
@@ -132,6 +136,8 @@ export function Player() {
               shownKey = key;
             },
             (error: unknown) => {
+              // A reader replaced by a newer recording may still reject; only the current one counts.
+              if (keyframes.current !== reader) return;
               keyframesFailed.current = true;
               reportError(error);
             },
@@ -142,18 +148,17 @@ export function Player() {
     };
 
     const tick = (now: number) => {
-      const { outT, playing, seek, setPlaying } = usePlayback.getState();
-      const dt = playing ? (now - last) / 1000 : 0;
+      const { outT, playing, seekId, advance, setPlaying } = usePlayback.getState();
       let t = outT;
       if (playing) {
-        t = Math.min(outT + dt, edl.totalS);
+        t = Math.min(outT + (now - last) / 1000, edl.totalS);
         if (t >= edl.totalS) setPlaying(false);
-        seek(t);
+        advance(t);
       }
-      // A jump the clock did not make itself means the user scrubbed: the video must follow.
-      const jumped = Math.abs(outT - lastT) > 0.05;
+      // A seek made by a person (not this clock) means the video must follow, however small.
+      const jumped = seekId !== lastSeekId;
+      lastSeekId = seekId;
       last = now;
-      lastT = t;
       const r = remap(edl, t);
       if (r) {
         const entered = r.segment.id !== lastSegment;
