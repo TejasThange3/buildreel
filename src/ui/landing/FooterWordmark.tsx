@@ -62,20 +62,20 @@ export function FooterWordmark() {
     <LiquidMetal
       aria-hidden
       style={{ aspectRatio: image.aspect }}
-      className="w-full animate-[fade-in_900ms_var(--ease-out-expo)_both]"
+      className="w-full opacity-60 animate-[fade-in_900ms_var(--ease-out-expo)_both]"
       image={image.url}
       fit="contain"
       colorBack="#00000000"
-      colorTint="#ffc2ab"
-      repetition={3}
-      softness={0.35}
-      shiftRed={0.35}
+      colorTint="#e9dcd6"
+      repetition={1.5}
+      softness={1}
+      shiftRed={0}
       shiftBlue={0}
-      distortion={0.1}
-      contour={0.35}
+      distortion={0.05}
+      contour={0}
       angle={70}
       scale={1}
-      speed={still ? 0 : 0.5}
+      speed={still ? 0 : 0.25}
     />
   );
 }
