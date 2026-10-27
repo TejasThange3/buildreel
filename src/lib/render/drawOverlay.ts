@@ -1,4 +1,5 @@
 import type { Segment } from "@/shared/types";
+import { wrapText } from "./wrapText";
 
 export type OverlayFonts = { sans: string; mono: string };
 
@@ -19,29 +20,6 @@ function fadeAlpha(local: number, outDur: number): number {
   return Math.min(1, local / FADE_S, (outDur - local) / FADE_S);
 }
 
-function wrapLines(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
-  const lines: string[] = [];
-  for (const paragraph of text.split("\n")) {
-    let line = "";
-    for (const word of paragraph.split(/\s+/).filter(Boolean)) {
-      const next = line ? `${line} ${word}` : word;
-      if (ctx.measureText(next).width > maxWidth && line) {
-        lines.push(line);
-        line = word;
-      } else {
-        line = next;
-      }
-    }
-    if (line) lines.push(line);
-  }
-  return lines;
-}
-
-function clampLines(lines: string[], max: number): string[] {
-  if (lines.length <= max) return lines;
-  return [...lines.slice(0, max - 1), `${lines[max - 1] ?? ""}…`];
-}
-
 function panel(f: Frame, x: number, y: number, w: number, h: number, r: number) {
   f.ctx.beginPath();
   f.ctx.roundRect(x, y, w, h, r);
@@ -60,7 +38,8 @@ function drawPrompt(f: Frame, text: string) {
   const pad = size * 1.2;
   const width = Math.min(w * 0.72, size * 30);
   ctx.font = `600 ${size}px ${fonts.sans}`;
-  const lines = clampLines(wrapLines(ctx, text, width - pad * 2), MAX_PROMPT_LINES);
+  const measure = (s: string) => ctx.measureText(s).width;
+  const lines = wrapText(measure, text, width - pad * 2, MAX_PROMPT_LINES);
   const lineH = size * 1.32;
   const tag = size * 0.5;
   const height = pad * 2 + tag * 2.2 + lines.length * lineH;
@@ -130,7 +109,7 @@ function drawCard(f: Frame, kind: "title" | "stats", text: string) {
   ctx.fillStyle = INK;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  const lines = wrapLines(ctx, text, w * 0.7);
+  const lines = wrapText((s) => ctx.measureText(s).width, text, w * 0.7, Infinity);
   const lineH = size * 1.3;
   lines.forEach((line, i) => {
     ctx.fillStyle = i === 0 ? INK : MUTED;
