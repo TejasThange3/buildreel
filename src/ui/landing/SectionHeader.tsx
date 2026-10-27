@@ -6,18 +6,14 @@ export function SectionHeader({
   eyebrow,
   title,
   children,
-  voice = false,
 }: {
   eyebrow: string;
   title: ReactNode;
   children: ReactNode;
-  voice?: boolean;
 }) {
   return (
     <div className="grid gap-x-16 gap-y-5 lg:grid-cols-2">
-      <p
-        className={`font-mono text-xs tracking-wider uppercase lg:col-span-2 ${voice ? "text-voice" : "text-fg-subtle"}`}
-      >
+      <p className="font-mono text-xs tracking-wider text-fg-subtle uppercase lg:col-span-2">
         {eyebrow}
       </p>
       <h2 className="text-4xl leading-[1.05] font-semibold tracking-tighter text-balance md:text-5xl">
