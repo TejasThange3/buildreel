@@ -32,3 +32,14 @@ export function remap(edl: EDL, outT: number): Remapped | undefined {
   }
   return undefined;
 }
+
+// Where each step first appears in the reel, for jumping to it; steps cut from the reel are absent.
+export function stepStarts(edl: EDL): Map<number, number> {
+  const starts = new Map<number, number>();
+  let at = 0;
+  for (const segment of edl.segments) {
+    if (segment.step !== undefined && !starts.has(segment.step)) starts.set(segment.step, at);
+    at += segment.outDur;
+  }
+  return starts;
+}

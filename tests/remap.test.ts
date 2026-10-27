@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { remap } from "@/lib/plan/remap";
+import { remap, stepStarts } from "@/lib/plan/remap";
 import type { EDL } from "@/shared/types";
 
 // card 2 s | hold 3 s at 10 | fast 2 s over [10, 50] at 20x | real 4 s from 60 | card 1 s
@@ -67,5 +67,12 @@ describe("zero-length segments", () => {
     expect(
       remap({ segments: [{ id: "c", mode: "card", outDur: 0 }], totalS: 0 }, 0),
     ).toBeUndefined();
+  });
+});
+
+describe("stepStarts", () => {
+  it("gives the output time where each step first appears", () => {
+    expect(stepStarts(edl)).toEqual(new Map([[1, 2]]));
+    expect(stepStarts({ segments: [], totalS: 0 }).size).toBe(0);
   });
 });
