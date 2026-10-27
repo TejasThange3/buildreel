@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Logo } from "../Logo";
+import { FooterWordmark } from "./FooterWordmark";
 import { REPO_URL } from "./Hero";
 import { MetalLink } from "./MetalLink";
 import { PrivacyFlow } from "./PrivacyFlow";
@@ -72,6 +73,9 @@ export function Closing() {
               No Hands: The Wispr Challenge, by WeMakeDevs and Wispr Flow.
             </p>
           </div>
+        </div>
+        <div className="mx-auto max-w-7xl px-4 pb-8 [container-type:inline-size] sm:px-6">
+          <FooterWordmark />
         </div>
       </footer>
     </>
