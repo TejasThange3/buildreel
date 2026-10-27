@@ -4,9 +4,17 @@ import { activityTrack, readPacketSizes } from "@/lib/media/activity";
 import { keyframeTimes } from "@/lib/media/keyframes";
 import { probeVideo } from "@/lib/media/probe";
 import { planReel } from "@/lib/plan/autoPlan";
-import { alignEvents } from "@/lib/timeline/align";
+import { alignEvents, offsetFor, syncPrompt } from "@/lib/timeline/align";
 import { buildSteps } from "@/lib/timeline/steps";
-import type { ActivityTrack, Constraints, EDL, ParsedLog, Step, VideoProbe } from "@/shared/types";
+import type {
+  ActivityTrack,
+  BuildEvent,
+  Constraints,
+  EDL,
+  ParsedLog,
+  Step,
+  VideoProbe,
+} from "@/shared/types";
 
 export type Recording = {
   file: File;
@@ -27,6 +35,8 @@ type Inputs = {
 
 type ProjectState = Inputs &
   Derived & {
+    // The prompt the sync panel marks; fixed per import (see syncPrompt).
+    syncTarget?: Extract<BuildEvent, { kind: "prompt" }>;
     synced: boolean;
     importing: boolean;
     importError?: string;
@@ -59,20 +69,23 @@ function derive({ recording, log, offsetS, constraints }: Inputs): Derived {
 
 const isLog = (file: File) => file.name.toLowerCase().endsWith(".jsonl");
 
-async function readRecording(file: File): Promise<Recording> {
+// The object URL is created by the caller only once the whole import has succeeded.
+async function readRecording(file: File): Promise<Omit<Recording, "url">> {
   const probe = await probeVideo(file);
   const packets = await readPacketSizes(file);
-  const activity = activityTrack(packets, probe.durationS);
   return {
     file,
-    url: URL.createObjectURL(file),
     probe,
-    activity,
+    activity: activityTrack(packets, probe.durationS),
     keyTimes: keyframeTimes(packets),
   };
 }
 
 export const useProject = create<ProjectState>()((set, get) => {
+  // Each import gets a number; a reset or a newer import makes older results stale, and stale
+  // results are dropped before they touch the project.
+  let generation = 0;
+
   // Every input change re-plans, so the EDL never goes stale.
   const update = (patch: Partial<Inputs>) => {
     const next = { ...get(), ...patch };
@@ -94,39 +107,50 @@ export const useProject = create<ProjectState>()((set, get) => {
         set({ importError: "Drop one screen recording and at least one Claude Code .jsonl log." });
         return;
       }
+      if (get().importing) return;
+      const current = ++generation;
       set({ importing: true, importError: undefined });
       try {
-        const [recording, texts] = await Promise.all([
+        const [read, texts] = await Promise.all([
           readRecording(video),
           Promise.all(logs.map((f) => f.text())),
         ]);
+        if (current !== generation) return;
         const log = parseClaudeLogs(texts);
         const previous = get().recording;
         if (previous) URL.revokeObjectURL(previous.url);
-        set({ synced: false });
+        const recording = { ...read, url: URL.createObjectURL(read.file) };
+        const { startedAt, durationS } = read.probe;
+        set({ synced: false, syncTarget: syncPrompt(log.events, startedAt, durationS) });
         update({ recording, log, offsetS: 0, constraints: DEFAULT_CONSTRAINTS });
       } catch (error) {
-        set({ importError: error instanceof Error ? error.message : String(error) });
+        if (current === generation) {
+          set({ importError: error instanceof Error ? error.message : String(error) });
+        }
       } finally {
-        set({ importing: false });
+        if (current === generation) set({ importing: false });
       }
     },
 
-    // The user says step 1's prompt is sent at videoT; every event shifts by the same amount.
+    // The user says the sync prompt is sent at videoT; every event shifts by the same amount.
     markPromptAt: (videoT) => {
-      const { steps, offsetS } = get();
-      const first = steps[0];
-      if (first) update({ offsetS: offsetS + videoT - first.promptT });
+      const { syncTarget, recording } = get();
+      if (syncTarget && recording) {
+        update({ offsetS: offsetFor(syncTarget, recording.probe.startedAt, videoT) });
+      }
     },
     confirmSync: () => set({ synced: true }),
 
     reset: () => {
+      generation++;
       const { recording } = get();
       if (recording) URL.revokeObjectURL(recording.url);
       set({
         recording: undefined,
         log: undefined,
+        syncTarget: undefined,
         synced: false,
+        importing: false,
         importError: undefined,
         ...EMPTY,
       });

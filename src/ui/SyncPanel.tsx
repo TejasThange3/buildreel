@@ -3,13 +3,15 @@
 import { CaretLeftIcon, CaretRightIcon } from "@phosphor-icons/react";
 import { useEffect, useRef, useState } from "react";
 import { formatTime } from "@/lib/format";
+import { alignEvents } from "@/lib/timeline/align";
 import { useProject } from "@/state/store";
 
 const NUDGE_S = 0.5;
 
 export function SyncPanel() {
   const recording = useProject((s) => s.recording);
-  const first = useProject((s) => s.steps[0]);
+  const syncTarget = useProject((s) => s.syncTarget);
+  const offsetS = useProject((s) => s.offsetS);
   const stepCount = useProject((s) => s.steps.length);
   const droppedSteps = useProject((s) => s.droppedSteps);
   const markPromptAt = useProject((s) => s.markPromptAt);
@@ -18,8 +20,11 @@ export function SyncPanel() {
   const video = useRef<HTMLVideoElement>(null);
   const [time, setTime] = useState(0);
 
-  // Open on the frame where the first prompt should land, and follow it when the offset moves.
-  const promptT = first?.promptT;
+  // Open on the frame where the sync prompt should land, and follow it when the offset moves.
+  const promptT =
+    syncTarget && recording
+      ? alignEvents([syncTarget], recording.probe.startedAt, offsetS)[0]?.t
+      : undefined;
   useEffect(() => {
     if (video.current && promptT !== undefined) video.current.currentTime = promptT;
   }, [promptT]);
@@ -78,17 +83,16 @@ export function SyncPanel() {
 
       <aside className="flex flex-col">
         <h1 className="text-xl font-semibold tracking-tight text-balance">
-          Is this where your first prompt was sent?
+          Is this where your prompt was sent?
         </h1>
-        {first ? (
+        {syncTarget && promptT !== undefined ? (
           <>
             <p className="mt-3 text-sm leading-relaxed text-fg-muted text-pretty">
-              It should land at{" "}
-              <span className="font-mono text-fg">{formatTime(first.promptT)}</span>. Scrub to the
-              frame where it appears in the chat, then mark it.
+              It should land at <span className="font-mono text-fg">{formatTime(promptT)}</span>.
+              Scrub to the frame where it appears in the chat, then mark it.
             </p>
             <blockquote className="mt-6 line-clamp-6 rounded-[var(--radius-panel)] bg-surface p-4 text-sm leading-relaxed text-fg">
-              {first.prompt}
+              {syncTarget.text}
             </blockquote>
             <p className="mt-3 font-mono text-xs text-fg-subtle">
               {stepCount} {stepCount === 1 ? "step" : "steps"} in this recording
@@ -113,8 +117,8 @@ export function SyncPanel() {
           </>
         ) : (
           <p className="mt-3 text-sm leading-relaxed text-fg-muted text-pretty">
-            None of the prompts in these logs fall inside this recording. Check that the logs are
-            from the same session.
+            These logs have no prompts to sync against. Check that they are Claude Code session
+            logs.
           </p>
         )}
         <button
