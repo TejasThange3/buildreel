@@ -42,23 +42,33 @@ export async function renderReelAudio(
   for (const { src, outStart } of realWindows(edl)) {
     const start = Math.round(outStart * sampleRate);
     const end = Math.min(start + Math.round((src[1] - src[0]) * sampleRate), length);
+    // Fades go where audio was actually written, which is shorter than the window when the
+    // source audio ends early.
+    let first = end;
+    let last = start;
     for await (const sample of sink.samples(src[0], src[1])) {
-      signal.throwIfAborted();
-      const offset = start + Math.round((sample.timestamp - src[0]) * sampleRate);
-      const frames = new Float32Array(sample.numberOfFrames);
-      planes.forEach((plane, c) => {
-        // A mono source fills both channels of a stereo reel.
-        sample.copyTo(frames, {
-          planeIndex: Math.min(c, sample.numberOfChannels - 1),
-          format: "f32-planar",
-        });
+      try {
+        signal.throwIfAborted();
+        const offset = start + Math.round((sample.timestamp - src[0]) * sampleRate);
         const from = Math.max(start - offset, 0);
-        const to = Math.min(frames.length, end - offset);
-        if (to > from) plane.set(frames.subarray(from, to), offset + from);
-      });
-      sample.close();
+        const to = Math.min(sample.numberOfFrames, end - offset);
+        if (to <= from) continue;
+        const frames = new Float32Array(sample.numberOfFrames);
+        planes.forEach((plane, c) => {
+          // A mono source fills both channels of a stereo reel.
+          sample.copyTo(frames, {
+            planeIndex: Math.min(c, sample.numberOfChannels - 1),
+            format: "f32-planar",
+          });
+          plane.set(frames.subarray(from, to), offset + from);
+        });
+        first = Math.min(first, offset + from);
+        last = Math.max(last, offset + to);
+      } finally {
+        sample.close();
+      }
     }
-    for (const plane of planes) fadeEdges(plane, start, end, sampleRate);
+    if (last > first) for (const plane of planes) fadeEdges(plane, first, last, sampleRate);
   }
   return planes;
 }
