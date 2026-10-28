@@ -3,6 +3,7 @@ import { parseClaudeLogs } from "@/lib/log/parseClaudeLog";
 import { activityTrack, readPacketSizes } from "@/lib/media/activity";
 import { keyframeTimes } from "@/lib/media/keyframes";
 import { probeVideo } from "@/lib/media/probe";
+import { redact } from "@/lib/log/redact";
 import { applyOps, describeOps } from "@/lib/plan/applyOps";
 import { planReel } from "@/lib/plan/autoPlan";
 import { alignEvents, offsetFor, syncPrompt } from "@/lib/timeline/align";
@@ -70,6 +71,8 @@ const DEFAULT_CONSTRAINTS: Constraints = {
 
 const EMPTY: Derived = { steps: [], droppedSteps: 0, edl: { segments: [], totalS: 0 } };
 const HISTORY = 50;
+// Matches the request schema's cap; longer sessions are steered with the toggles.
+const MAX_STEER_STEPS = 80;
 
 function derive({ recording, log, offsetS, constraints }: Inputs): Derived {
   if (!recording || !log) return EMPTY;
@@ -98,14 +101,20 @@ export const useProject = create<ProjectState>()((set, get) => {
   // results are dropped before they touch the project.
   let generation = 0;
 
+  // Bumped on every project change; a steer answer computed for an older project is dropped.
+  let revision = 0;
+
   // Every input change re-plans, so the EDL never goes stale.
   const update = (patch: Partial<Inputs>) => {
+    revision++;
     const next = { ...get(), ...patch };
     set({ ...patch, ...derive(next) });
   };
 
+  // A change that changes nothing keeps the redo stack intact.
   const commit = (constraints: Constraints) => {
     const { constraints: current, past } = get();
+    if (JSON.stringify(constraints) === JSON.stringify(current)) return;
     set({ past: [...past, current].slice(-HISTORY), future: [] });
     update({ constraints });
   };
@@ -168,6 +177,7 @@ export const useProject = create<ProjectState>()((set, get) => {
 
     reset: () => {
       generation++;
+      revision++;
       const { recording } = get();
       if (recording) URL.revokeObjectURL(recording.url);
       set({
@@ -195,10 +205,19 @@ export const useProject = create<ProjectState>()((set, get) => {
 
     steer: async (instruction) => {
       const { steps, edl, constraints } = get();
+      if (steps.length > MAX_STEER_STEPS)
+        return {
+          ok: false,
+          message: `Steering works on sessions of up to ${MAX_STEER_STEPS} prompts. Use the step toggles here.`,
+        };
+      const sent = revision;
       const reply = await requestSteer(steerRequest(instruction, steps, edl, constraints));
       if (!reply.ok) return reply;
-      // The project may have changed while the request was in flight; ops apply to the current one.
-      const result = applyOps(get().constraints, reply.ops, get().steps.length);
+      if (revision !== sent)
+        return { ok: false, message: "The reel changed while that was planning. Say it again." };
+      // Text the model wrote is shown and exported, so it is redacted like any prompt.
+      const ops = reply.ops.map((op) => ("text" in op ? { ...op, text: redact(op.text) } : op));
+      const result = applyOps(constraints, ops, steps.length);
       if (result.applied.length === 0)
         return { ok: false, message: reply.note ?? "Nothing to change for that." };
       commit(result.constraints);

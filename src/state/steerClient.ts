@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { redact } from "@/lib/log/redact";
 import { type PatchOp, type SteerRequest, SteerResponseSchema } from "@/shared/steer";
 import type { Constraints, EDL, Step } from "@/shared/types";
 
@@ -8,7 +9,9 @@ export type SteerReply =
 const RateLimited = z.object({ retryAfterS: z.number() });
 
 // The model sees each step as the user does: its title, the start of the prompt, how long it runs
-// in the reel now, and whether it is in the reel at all (dropped or cut for time).
+// in the reel now, and whether it is in the reel at all (dropped or cut for time). Prompts were
+// redacted when parsed; the instruction and title overrides are typed text, so they are redacted
+// here before anything leaves the browser.
 export function steerRequest(
   instruction: string,
   steps: Step[],
@@ -19,11 +22,11 @@ export function steerRequest(
   for (const s of edl.segments)
     if (s.step !== undefined) seconds.set(s.step, (seconds.get(s.step) ?? 0) + s.outDur);
   return {
-    instruction,
+    instruction: redact(instruction),
     targetS: constraints.targetS,
     steps: steps.map((step) => ({
       index: step.index,
-      title: (constraints.titles[step.index] ?? step.title).slice(0, 80),
+      title: redact(constraints.titles[step.index] ?? step.title).slice(0, 80),
       excerpt: step.prompt.slice(0, 120),
       outDur: seconds.get(step.index) ?? 0,
       kept: seconds.has(step.index),
