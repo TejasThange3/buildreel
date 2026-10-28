@@ -9,6 +9,7 @@ import {
 } from "mediabunny";
 import { openVideo } from "@/lib/media/probe";
 import type { EDL } from "@/shared/types";
+import { drawOverlay, type OverlayFonts } from "./drawOverlay";
 import { FPS, outputFrames } from "./frames";
 
 // The browser cannot encode a format this export needs; the UI shows it as a capability message.
@@ -18,6 +19,7 @@ export type ExportOptions = {
   file: File;
   edl: EDL;
   keyTimes: number[];
+  fonts: OverlayFonts;
   maxHeight: number;
   onProgress: (fraction: number) => void;
   signal: AbortSignal;
@@ -37,11 +39,12 @@ const yieldToPage = () =>
 const even = (n: number) => Math.max(2, Math.round(n / 2) * 2);
 
 // ARCHITECTURE.md 6.9: every output frame is remapped to its source moment, decoded in order,
-// drawn and encoded.
+// drawn with the same overlay as the preview and encoded.
 export async function exportMp4({
   file,
   edl,
   keyTimes,
+  fonts,
   maxHeight,
   onProgress,
   signal,
@@ -89,6 +92,7 @@ export async function exportMp4({
           const { value } = await decoded.next();
           if (value) ctx.drawImage(value.canvas, 0, 0);
         }
+        drawOverlay(ctx, frame.segment, frame.local, frame.srcT, fonts);
         await videoSource.add(frame.outT, 1 / FPS);
         if (frame.index % YIELD_EVERY === 0) {
           onProgress(frame.index / frames.length);
