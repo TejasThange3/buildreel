@@ -9,6 +9,7 @@ export function StepList() {
   const steps = useProject((s) => s.steps);
   const edl = useProject((s) => s.edl);
   const dropped = useProject((s) => s.constraints.dropped);
+  const titles = useProject((s) => s.constraints.titles);
   const toggleStep = useProject((s) => s.toggleStep);
   const seek = usePlayback((s) => s.seek);
 
@@ -36,7 +37,9 @@ export function StepList() {
                 {step.index}
               </span>
               <span className="min-w-0">
-                <span className="block truncate text-sm font-medium">{step.title}</span>
+                <span className="block truncate text-sm font-medium">
+                  {titles[step.index] ?? step.title}
+                </span>
                 <span className="mt-0.5 block font-mono text-xs text-fg-subtle tabular-nums">
                   {status}
                 </span>

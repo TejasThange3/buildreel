@@ -1,6 +1,7 @@
 "use client";
 
 import { Player } from "./Player";
+import { SteerBox } from "./SteerBox";
 import { StepList } from "./StepList";
 import { TargetPicker } from "./TargetPicker";
 import { Timeline } from "./Timeline";
@@ -11,6 +12,7 @@ export function EditStage() {
       <div className="flex min-w-0 flex-col gap-5">
         <Player />
         <Timeline />
+        <SteerBox />
       </div>
       <aside className="flex min-w-0 flex-col gap-5 lg:border-l lg:border-line lg:pl-8">
         <div className="flex items-center justify-between gap-3">
