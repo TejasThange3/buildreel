@@ -3,26 +3,23 @@
 import { PauseIcon, PlayIcon } from "@phosphor-icons/react";
 import { useEffect, useRef } from "react";
 import { formatTime } from "@/lib/format";
-import { keyframeAt, openKeyframes, type KeyframeReader } from "@/lib/media/keyframes";
+import {
+  keyframeAt,
+  openKeyframes,
+  TIMELAPSE_RATE,
+  type KeyframeReader,
+} from "@/lib/media/keyframes";
 import { remap, type Remapped } from "@/lib/plan/remap";
 import { containRect } from "@/lib/render/contain";
-import { drawOverlay, type OverlayFonts } from "@/lib/render/drawOverlay";
+import { drawOverlay } from "@/lib/render/drawOverlay";
 import { usePlayback } from "@/state/playback";
 import { useProject } from "@/state/store";
+import { readFonts } from "./overlayFonts";
 
 // Browsers cap playbackRate at 16; faster fast-forwards are drawn from keyframes instead.
-const MAX_RATE = 16;
 // Real-time playback re-seeks only when it drifts this far, so seeks do not stutter it.
 const DRIFT_S = 0.25;
 const KEYFRAME_WIDTH = 1280;
-
-function readFonts(): OverlayFonts {
-  const style = getComputedStyle(document.documentElement);
-  return {
-    sans: style.getPropertyValue("--font-geist-sans") || "sans-serif",
-    mono: style.getPropertyValue("--font-geist-mono") || "monospace",
-  };
-}
 
 // play() rejects with AbortError when a cut pauses or seeks the video before it starts; that is
 // expected at every segment boundary. Anything else is a real failure.
@@ -51,7 +48,7 @@ function steerVideo(
   }
   // Without keyframes, a fast-forward faster than the browser can play hops: the video pauses
   // and seeks to each new source time as soon as the previous seek lands.
-  const hopping = segment.mode === "fast" && segment.speed > MAX_RATE;
+  const hopping = segment.mode === "fast" && segment.speed > TIMELAPSE_RATE;
   const moving = playing && (segment.mode === "real" || segment.mode === "fast") && !hopping;
   video.muted = segment.mode !== "real";
   video.playbackRate = segment.mode === "fast" && !hopping ? segment.speed : 1;
@@ -119,7 +116,7 @@ export function Player() {
     let epoch = 0;
 
     const isTimelapse = ({ segment }: Remapped) =>
-      segment.mode === "fast" && segment.speed > MAX_RATE && !keyframesFailed.current;
+      segment.mode === "fast" && segment.speed > TIMELAPSE_RATE && !keyframesFailed.current;
 
     const drawTimelapse = (srcT: number, w: number, h: number) => {
       const key = keyframeAt(recording.keyTimes, srcT);

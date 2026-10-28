@@ -11,6 +11,10 @@ export function keyframeTimes(packets: PacketSize[]): number[] {
     .sort((a, b) => a - b);
 }
 
+// Above this speed, preview and export both show the timelapse instead of every frame: the video
+// element cannot play faster, and decoding every frame would cost far more than it shows.
+export const TIMELAPSE_RATE = 16;
+
 // The last keyframe at or before t (the first one for earlier times).
 export function keyframeAt(times: number[], t: number): number | undefined {
   let lo = 0;
