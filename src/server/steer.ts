@@ -20,7 +20,8 @@ Ops:
 
 Rules:
 - Refer to steps only by their number in the list. Match descriptions such as "the step where export worked" against the titles and excerpts and pick the single best match.
-- Use only what the instruction asks for. Do not add ops it did not ask for.
+- Use only what the instruction asks for. Do not add ops it did not ask for; use setTarget only when a length or duration is mentioned.
+- "Open with", "start with" or "begin with" some text is setIntro; "end with", "close with" or "finish on" some text is setOutro. A title for a step is a separate op from the intro and outro.
 - Change a title, intro or outro only when the instruction asks to name, title or caption something. Requests about colours, fonts, music, effects, transitions or layout cannot be done.
 - If the instruction is unclear, or asks for something these ops cannot do, return no ops and explain why in "note" in one short sentence. Otherwise "note" is null.
 - Write "note" for the person in plain words, for example "Buildreel cannot change colours yet." Never mention ops or JSON.`;
