@@ -293,7 +293,8 @@ for each output frame at 30 fps:
     srtT = remap(outT)
     frame = decoded source frame at srcT  (sequential timestamps, decoder reused)
     draw frame -> draw overlay -> encode (H.264 via WebCodecs)
-audio: copy source audio only for 'real' segments, re-timestamped to output time; silence elsewhere
+audio: decode source audio for 'real' segments only, place it at output time with 12 ms fades, silence elsewhere,
+       encode one continuous track (AAC, else Opus); fast-forwards above 16x decode keyframes only
 mux to MP4 in memory -> Blob -> download
 ```
 Library: Mediabunny (WebCodecs-based demux/decode/encode/mux). Fallback if a Day 1 spike fails: ffmpeg.wasm (needs COOP/COEP headers, set in `next.config.ts` headers for the editor route only).
@@ -331,7 +332,8 @@ Wispr types the sentence into SteerBox -> Enter
 
 ### 7.4 Export
 ```
-Export -> worker-free main-thread loop with progress + cancel (yield every N frames)
+Export -> worker-free main-thread loop with progress + cancel (yield every 8 frames by MessageChannel,
+          which background tabs do not throttle)
 -> reel.mp4 + reel.srt + post.txt download
 ```
 
