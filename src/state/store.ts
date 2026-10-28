@@ -44,8 +44,13 @@ type ProjectState = Inputs &
     markPromptAt: (videoT: number) => void;
     confirmSync: () => void;
     reset: () => void;
+    // Every constraint change goes through history, so undo covers toggles as well as steering.
+    past: Constraints[];
+    future: Constraints[];
     toggleStep: (index: number) => void;
     setTarget: (seconds: number) => void;
+    undo: () => void;
+    redo: () => void;
   };
 
 const DEFAULT_CONSTRAINTS: Constraints = {
@@ -58,6 +63,7 @@ const DEFAULT_CONSTRAINTS: Constraints = {
 };
 
 const EMPTY: Derived = { steps: [], droppedSteps: 0, edl: { segments: [], totalS: 0 } };
+const HISTORY = 50;
 
 function derive({ recording, log, offsetS, constraints }: Inputs): Derived {
   if (!recording || !log) return EMPTY;
@@ -92,12 +98,20 @@ export const useProject = create<ProjectState>()((set, get) => {
     set({ ...patch, ...derive(next) });
   };
 
+  const commit = (constraints: Constraints) => {
+    const { constraints: current, past } = get();
+    set({ past: [...past, current].slice(-HISTORY), future: [] });
+    update({ constraints });
+  };
+
   return {
     offsetS: 0,
     constraints: DEFAULT_CONSTRAINTS,
     ...EMPTY,
     synced: false,
     importing: false,
+    past: [],
+    future: [],
 
     importFiles: async (files) => {
       const logs = files.filter(isLog);
@@ -121,7 +135,12 @@ export const useProject = create<ProjectState>()((set, get) => {
         if (previous) URL.revokeObjectURL(previous.url);
         const recording = { ...read, url: URL.createObjectURL(read.file) };
         const { startedAt, durationS } = read.probe;
-        set({ synced: false, syncTarget: syncPrompt(log.events, startedAt, durationS) });
+        set({
+          synced: false,
+          syncTarget: syncPrompt(log.events, startedAt, durationS),
+          past: [],
+          future: [],
+        });
         update({ recording, log, offsetS: 0, constraints: DEFAULT_CONSTRAINTS });
       } catch (error) {
         if (current === generation) {
@@ -152,6 +171,8 @@ export const useProject = create<ProjectState>()((set, get) => {
         synced: false,
         importing: false,
         importError: undefined,
+        past: [],
+        future: [],
         ...EMPTY,
       });
     },
@@ -161,9 +182,25 @@ export const useProject = create<ProjectState>()((set, get) => {
       const next = dropped.includes(index)
         ? dropped.filter((i) => i !== index)
         : [...dropped, index];
-      update({ constraints: { ...get().constraints, dropped: next } });
+      commit({ ...get().constraints, dropped: next });
     },
 
-    setTarget: (seconds) => update({ constraints: { ...get().constraints, targetS: seconds } }),
+    setTarget: (seconds) => commit({ ...get().constraints, targetS: seconds }),
+
+    undo: () => {
+      const { past, future, constraints } = get();
+      const previous = past.at(-1);
+      if (!previous) return;
+      set({ past: past.slice(0, -1), future: [constraints, ...future] });
+      update({ constraints: previous });
+    },
+
+    redo: () => {
+      const { past, future, constraints } = get();
+      const [next, ...rest] = future;
+      if (!next) return;
+      set({ past: [...past, constraints], future: rest });
+      update({ constraints: next });
+    },
   };
 });
