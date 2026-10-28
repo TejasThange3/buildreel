@@ -3,6 +3,7 @@ import { parseClaudeLogs } from "@/lib/log/parseClaudeLog";
 import { activityTrack, readPacketSizes } from "@/lib/media/activity";
 import { keyframeTimes } from "@/lib/media/keyframes";
 import { probeVideo } from "@/lib/media/probe";
+import { applyOps, describeOps } from "@/lib/plan/applyOps";
 import { planReel } from "@/lib/plan/autoPlan";
 import { alignEvents, offsetFor, syncPrompt } from "@/lib/timeline/align";
 import { buildSteps } from "@/lib/timeline/steps";
@@ -15,6 +16,7 @@ import type {
   Step,
   VideoProbe,
 } from "@/shared/types";
+import { requestSteer, steerRequest } from "./steerClient";
 
 export type Recording = {
   file: File;
@@ -25,6 +27,9 @@ export type Recording = {
 };
 
 type Derived = { steps: Step[]; droppedSteps: number; edl: EDL };
+
+export type SteerOutcome =
+  { ok: true; summary: string; note: string | null } | { ok: false; message: string };
 
 type Inputs = {
   recording?: Recording;
@@ -49,6 +54,7 @@ type ProjectState = Inputs &
     future: Constraints[];
     toggleStep: (index: number) => void;
     setTarget: (seconds: number) => void;
+    steer: (instruction: string) => Promise<SteerOutcome>;
     undo: () => void;
     redo: () => void;
   };
@@ -186,6 +192,18 @@ export const useProject = create<ProjectState>()((set, get) => {
     },
 
     setTarget: (seconds) => commit({ ...get().constraints, targetS: seconds }),
+
+    steer: async (instruction) => {
+      const { steps, edl, constraints } = get();
+      const reply = await requestSteer(steerRequest(instruction, steps, edl, constraints));
+      if (!reply.ok) return reply;
+      // The project may have changed while the request was in flight; ops apply to the current one.
+      const result = applyOps(get().constraints, reply.ops, get().steps.length);
+      if (result.applied.length === 0)
+        return { ok: false, message: reply.note ?? "Nothing to change for that." };
+      commit(result.constraints);
+      return { ok: true, summary: describeOps(result.applied), note: reply.note };
+    },
 
     undo: () => {
       const { past, future, constraints } = get();
