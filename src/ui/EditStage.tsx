@@ -1,5 +1,6 @@
 "use client";
 
+import { ExportPanel } from "./ExportPanel";
 import { Player } from "./Player";
 import { SteerBox } from "./SteerBox";
 import { StepList } from "./StepList";
@@ -22,6 +23,10 @@ export function EditStage() {
         <div>
           <h2 className="mb-2 text-sm font-medium">Steps</h2>
           <StepList />
+        </div>
+        <div className="border-t border-line pt-5">
+          <h2 className="mb-3 text-sm font-medium">Export</h2>
+          <ExportPanel />
         </div>
       </aside>
     </div>
