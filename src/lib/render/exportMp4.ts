@@ -14,7 +14,7 @@ import { openVideo } from "@/lib/media/probe";
 import type { EDL } from "@/shared/types";
 import { drawOverlay, type OverlayFonts } from "./drawOverlay";
 import { FPS, outputFrames } from "./frames";
-import { audioSamples, renderReelAudio } from "./reelAudio";
+import { audioSamples, realWindows, renderReelAudio } from "./reelAudio";
 
 // The browser cannot encode a format this export needs; the UI shows it as a capability message.
 export class ExportUnsupportedError extends Error {}
@@ -89,6 +89,11 @@ export async function exportMp4({
         numberOfChannels: channels,
         sampleRate: audio.sampleRate,
       }));
+    // Dropping the sound silently would ship a reel without the reviewer's voice.
+    if (audio && !audioCodec && realWindows(edl).length > 0)
+      throw new ExportUnsupportedError(
+        "This browser cannot encode audio. Export works in a recent Chrome or Edge.",
+      );
     const audioSource = audioCodec
       ? new AudioSampleSource({ codec: audioCodec, bitrate: QUALITY_HIGH })
       : undefined;
@@ -106,8 +111,11 @@ export async function exportMp4({
           signal,
         );
         for (const sample of audioSamples(planes, audio.sampleRate)) {
-          await audioSource.add(sample);
-          sample.close();
+          try {
+            await audioSource.add(sample);
+          } finally {
+            sample.close();
+          }
         }
       }
 
@@ -116,22 +124,27 @@ export async function exportMp4({
       const decoded = sink.canvasesAtTimestamps(
         frames.flatMap((f) => (f.frameT === undefined ? [] : [f.frameT])),
       );
-      for (const frame of frames) {
-        signal.throwIfAborted();
-        ctx.fillStyle = "#000";
-        ctx.fillRect(0, 0, width, height);
-        if (frame.frameT !== undefined) {
-          const { value } = await decoded.next();
-          if (value) ctx.drawImage(value.canvas, 0, 0);
+      // Returning the generator releases the decoder and its queued frames, on cancel too.
+      try {
+        for (const frame of frames) {
+          signal.throwIfAborted();
+          ctx.fillStyle = "#000";
+          ctx.fillRect(0, 0, width, height);
+          if (frame.frameT !== undefined) {
+            const { value } = await decoded.next();
+            if (value) ctx.drawImage(value.canvas, 0, 0);
+          }
+          drawOverlay(ctx, frame.segment, frame.local, frame.srcT, fonts);
+          await videoSource.add(frame.outT, 1 / FPS);
+          if (frame.index % YIELD_EVERY === 0) {
+            onProgress(frame.index / frames.length);
+            await yieldToPage();
+          }
         }
-        drawOverlay(ctx, frame.segment, frame.local, frame.srcT, fonts);
-        await videoSource.add(frame.outT, 1 / FPS);
-        if (frame.index % YIELD_EVERY === 0) {
-          onProgress(frame.index / frames.length);
-          await yieldToPage();
-        }
+      } finally {
+        await decoded.return();
       }
-      await decoded.return();
+      signal.throwIfAborted();
       await output.finalize();
     } catch (error) {
       await output.cancel();
