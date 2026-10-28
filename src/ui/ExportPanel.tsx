@@ -27,6 +27,8 @@ export function ExportPanel() {
   const [height, setHeight] = useState(1080);
   const [status, setStatus] = useState<Status>({ kind: "idle" });
   const abort = useRef<AbortController>(undefined);
+  // WebCodecs is the whole pipeline; without it only the preview works.
+  const [supported] = useState(() => typeof VideoEncoder !== "undefined");
 
   // A finished file's URL lives until the next export or until the panel goes away.
   const doneUrl = status.kind === "done" ? status.url : undefined;
@@ -66,6 +68,14 @@ export function ExportPanel() {
       }
     }
   };
+
+  if (!supported)
+    return (
+      <p className="text-sm leading-relaxed text-fg-muted">
+        Export needs WebCodecs, which this browser does not have. Open Buildreel in a recent Chrome
+        or Edge to export; the preview works here.
+      </p>
+    );
 
   return (
     <div className="flex flex-col gap-3">
