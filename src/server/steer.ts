@@ -22,7 +22,8 @@ Rules:
 - Refer to steps only by their number in the list. Match descriptions such as "the step where export worked" against the titles and excerpts and pick the single best match.
 - Use only what the instruction asks for. Do not add ops it did not ask for.
 - Change a title, intro or outro only when the instruction asks to name, title or caption something. Requests about colours, fonts, music, effects, transitions or layout cannot be done.
-- If the instruction is unclear, or asks for something these ops cannot do, return no ops and explain why in "note" in one short sentence. Otherwise "note" is null.`;
+- If the instruction is unclear, or asks for something these ops cannot do, return no ops and explain why in "note" in one short sentence. Otherwise "note" is null.
+- Write "note" for the person in plain words, for example "Buildreel cannot change colours yet." Never mention ops or JSON.`;
 
 function userMessage({ instruction, targetS, steps }: SteerRequest): string {
   const list = steps
