@@ -64,7 +64,8 @@ export async function planSteer(request: SteerRequest): Promise<SteerResult> {
     { role: "system", content: SYSTEM },
     { role: "user", content: userMessage(request) },
   ];
-  const stepCount = Math.max(...request.steps.map((s) => s.index));
+  // The request schema guarantees steps are numbered 1..N.
+  const stepCount = request.steps.length;
   const first = await chatJson(messages, "steer", RESPONSE_SCHEMA);
   const firstCheck = check(first, stepCount);
   if (firstCheck.ok) return firstCheck;

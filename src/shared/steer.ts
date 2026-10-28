@@ -6,8 +6,8 @@ const stepNumber = z.number().int().min(1);
 
 export const PatchOpSchema = z.union([
   z.strictObject({ op: z.literal("setTarget"), seconds: z.number().min(15).max(300) }),
-  z.strictObject({ op: z.literal("keep"), steps: z.array(stepNumber).min(1) }),
-  z.strictObject({ op: z.literal("drop"), steps: z.array(stepNumber).min(1) }),
+  z.strictObject({ op: z.literal("keep"), steps: z.array(stepNumber).min(1).max(80) }),
+  z.strictObject({ op: z.literal("drop"), steps: z.array(stepNumber).min(1).max(80) }),
   z.strictObject({
     op: z.literal("emphasize"),
     step: stepNumber,
@@ -39,7 +39,11 @@ export const SteerRequestSchema = z.strictObject({
       }),
     )
     .min(1)
-    .max(80),
+    .max(80)
+    .refine(
+      (steps) => steps.every((s, i) => s.index === i + 1),
+      "Steps must be numbered 1..N in order.",
+    ),
 });
 export type SteerRequest = z.infer<typeof SteerRequestSchema>;
 
