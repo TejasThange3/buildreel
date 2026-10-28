@@ -54,6 +54,11 @@ export function ExportPanel() {
         onProgress: (progress) => setStatus({ kind: "running", progress }),
         signal: controller.signal,
       });
+      // A cancel or unmount during the final mux must not still download the file.
+      if (controller.signal.aborted) {
+        setStatus({ kind: "idle" });
+        return;
+      }
       const url = URL.createObjectURL(blob);
       const name = `${recording.file.name.replace(/\.[^.]+$/, "")}-reel.mp4`;
       setStatus({ kind: "done", url, name });
