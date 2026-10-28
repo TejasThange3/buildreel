@@ -23,6 +23,8 @@ const Completion = z.object({
 });
 
 const TIMEOUT_MS = 20_000;
+// A steer answer is a handful of ops; the cap bounds cost if the model runs on.
+const MAX_TOKENS = 1024;
 
 // One chat completion from any OpenAI-compatible endpoint, constrained to a JSON schema. Returns the
 // raw JSON text: callers validate it, and need the text to show the model its mistake on a retry.
@@ -31,19 +33,22 @@ export async function chatJson(
   schemaName: string,
   schema: Record<string, unknown>,
 ): Promise<string> {
-  const env = Env.parse(process.env);
+  const env = Env.safeParse(process.env);
+  if (!env.success) throw new LlmUnavailableError("The language model is not configured.");
+  const { LLM_API_KEY, LLM_BASE_URL, LLM_MODEL } = env.data;
   let response: Response;
   try {
-    response = await fetch(`${env.LLM_BASE_URL.replace(/\/$/, "")}/chat/completions`, {
+    response = await fetch(`${LLM_BASE_URL.replace(/\/$/, "")}/chat/completions`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${env.LLM_API_KEY}`,
+        Authorization: `Bearer ${LLM_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: env.LLM_MODEL,
+        model: LLM_MODEL,
         messages,
         temperature: 0,
+        max_completion_tokens: MAX_TOKENS,
         // Steering is a short mapping task; low effort keeps the answer under a couple of seconds.
         reasoning_effort: "low",
         response_format: {
@@ -62,7 +67,7 @@ export async function chatJson(
     );
   if (!response.ok)
     throw new LlmUnavailableError(`The language model answered ${response.status}.`);
-  const completion = Completion.safeParse(await response.json());
+  const completion = Completion.safeParse(await response.json().catch(() => undefined));
   if (!completion.success) throw new LlmUnavailableError("The language model sent no answer.");
   return completion.data.choices[0]?.message.content ?? "";
 }
