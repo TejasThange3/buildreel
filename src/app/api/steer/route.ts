@@ -9,11 +9,14 @@ const rateLimited = (retryAfterS: number) =>
     { status: 429, headers: { "Retry-After": String(retryAfterS) } },
   );
 
+const unavailable = () => Response.json({ error: "steering unavailable" }, { status: 503 });
+
 // ARCHITECTURE.md section 9. Nothing from the request is logged.
 export async function POST(request: Request) {
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
   const limit = await checkRateLimit(ip);
-  if (!limit.ok) return rateLimited(limit.retryAfterS);
+  if (limit.status === "limited") return rateLimited(limit.retryAfterS);
+  if (limit.status === "unavailable") return unavailable();
 
   const body = SteerRequestSchema.safeParse(await request.json().catch(() => undefined));
   if (!body.success) return Response.json({ error: "invalid request" }, { status: 400 });
@@ -28,8 +31,7 @@ export async function POST(request: Request) {
     return Response.json(result.value);
   } catch (error) {
     if (error instanceof LlmBusyError) return rateLimited(error.retryAfterS);
-    if (error instanceof LlmUnavailableError)
-      return Response.json({ error: "steering unavailable" }, { status: 503 });
+    if (error instanceof LlmUnavailableError) return unavailable();
     throw error;
   }
 }
