@@ -268,7 +268,7 @@ outT -> segment s (prefix sums of outDur) -> local = outT - s.start
 ### 6.7 Steering
 
 ```
-SteerBox text --> POST /api/steer { instruction, targetS, steps: [{index, title, excerpt(120), outDur, mode}] }
+SteerBox text --> POST /api/steer { instruction, targetS, steps: [{index, title, excerpt(120), outDur, kept}] }
 server: system prompt lists the op schema and the step list, JSON mode,
         zod-validate, reject step indexes outside 1..N, 1 retry with the validation error
 client: applyOps(constraints, ops) -> push history -> replan -> show "Applied: dropped step 3, target 60s"
@@ -414,7 +414,7 @@ The landing page and the editor are both built in Phase 5 and share one system.
 
 ```
 POST /api/steer
-  req  { instruction: string(<=500), targetS: number, steps: {index, title, excerpt, outDur, mode}[] (<=80) }
+  req  { instruction: string(<=500), targetS: number, steps: {index, title, excerpt, outDur, kept}[] (<=80) }
   200  { ops: PatchOp[], note?: string }
   422  { error: "could not map instruction", detail }
   429  { error: "rate limited", retryAfterS }
