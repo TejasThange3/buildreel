@@ -41,16 +41,17 @@ export function SteerBox() {
             id="steer"
             value={text}
             onChange={(e) => setText(e.target.value)}
-            disabled={pending}
+            readOnly={pending}
             maxLength={500}
             autoComplete="off"
             placeholder="Hold your Wispr Flow key and say what to change"
-            className="h-12 min-w-0 flex-1 bg-transparent px-3 font-mono text-sm text-fg outline-none placeholder:font-sans placeholder:text-fg-subtle disabled:opacity-60"
+            className="h-12 min-w-0 flex-1 bg-transparent px-3 font-mono text-sm text-fg outline-none read-only:opacity-60 placeholder:font-sans placeholder:text-fg-subtle"
           />
           <button
             type="submit"
-            disabled={pending || text.trim().length === 0}
-            className="mr-1.5 h-9 shrink-0 rounded-full bg-fg px-4 text-[13px] font-medium text-canvas transition-opacity disabled:opacity-40"
+            disabled={!pending && text.trim().length === 0}
+            aria-disabled={pending}
+            className="mr-1.5 h-9 shrink-0 rounded-full bg-fg px-4 text-[13px] font-medium text-canvas transition-opacity disabled:opacity-40 aria-disabled:opacity-40"
           >
             {pending ? "Planning…" : "Apply"}
           </button>
