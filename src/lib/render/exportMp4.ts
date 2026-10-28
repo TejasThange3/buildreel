@@ -1,7 +1,10 @@
 import {
+  AudioSampleSink,
+  AudioSampleSource,
   BufferTarget,
   CanvasSink,
   CanvasSource,
+  getFirstEncodableAudioCodec,
   getFirstEncodableVideoCodec,
   Mp4OutputFormat,
   Output,
@@ -11,6 +14,7 @@ import { openVideo } from "@/lib/media/probe";
 import type { EDL } from "@/shared/types";
 import { drawOverlay, type OverlayFonts } from "./drawOverlay";
 import { FPS, outputFrames } from "./frames";
+import { audioSamples, renderReelAudio } from "./reelAudio";
 
 // The browser cannot encode a format this export needs; the UI shows it as a capability message.
 export class ExportUnsupportedError extends Error {}
@@ -39,7 +43,7 @@ const yieldToPage = () =>
 const even = (n: number) => Math.max(2, Math.round(n / 2) * 2);
 
 // ARCHITECTURE.md 6.9: every output frame is remapped to its source moment, decoded in order,
-// drawn with the same overlay as the preview and encoded.
+// drawn with the same overlay as the preview and encoded; sound comes only from real-time parts.
 export async function exportMp4({
   file,
   edl,
@@ -77,8 +81,36 @@ export async function exportMp4({
     const videoSource = new CanvasSource(canvas, { codec: videoCodec, bitrate: QUALITY_HIGH });
     output.addVideoTrack(videoSource, { frameRate: FPS });
 
+    const audio = await input.getPrimaryAudioTrack();
+    const channels = audio ? Math.min(audio.numberOfChannels, 2) : 0;
+    const audioCodec =
+      audio &&
+      (await getFirstEncodableAudioCodec(["aac", "opus"], {
+        numberOfChannels: channels,
+        sampleRate: audio.sampleRate,
+      }));
+    const audioSource = audioCodec
+      ? new AudioSampleSource({ codec: audioCodec, bitrate: QUALITY_HIGH })
+      : undefined;
+    if (audioSource) output.addAudioTrack(audioSource);
+
     await output.start();
     try {
+      // The soundtrack is small, so it goes in whole before the video.
+      if (audio && audioSource) {
+        const planes = await renderReelAudio(
+          new AudioSampleSink(audio),
+          edl,
+          audio.sampleRate,
+          channels,
+          signal,
+        );
+        for (const sample of audioSamples(planes, audio.sampleRate)) {
+          await audioSource.add(sample);
+          sample.close();
+        }
+      }
+
       const frames = [...outputFrames(edl, keyTimes)];
       const sink = new CanvasSink(video, { width, height, fit: "contain" });
       const decoded = sink.canvasesAtTimestamps(
