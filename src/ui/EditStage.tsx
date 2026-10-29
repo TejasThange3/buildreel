@@ -4,6 +4,7 @@ import { ExportPanel } from "./ExportPanel";
 import { Player } from "./Player";
 import { PostDraftPanel } from "./PostDraftPanel";
 import { ProjectSave } from "./ProjectSave";
+import { PromptReview } from "./PromptReview";
 import { SteerBox } from "./SteerBox";
 import { StepList } from "./StepList";
 import { TargetPicker } from "./TargetPicker";
@@ -16,6 +17,13 @@ export function EditStage() {
         <Player />
         <Timeline />
         <SteerBox />
+        <section className="border-t border-line pt-5">
+          <h2 className="text-sm font-medium">Prompt cards</h2>
+          <p className="mt-1 mb-3 text-sm text-fg-muted">
+            Fix a word or hide a card before you export. The original stays in your log.
+          </p>
+          <PromptReview />
+        </section>
       </div>
       <aside className="flex min-w-0 flex-col gap-5 lg:border-l lg:border-line lg:pl-8">
         <div className="flex items-center justify-between gap-3">
