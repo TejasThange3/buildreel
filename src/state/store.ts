@@ -7,6 +7,7 @@ import { redact } from "@/lib/log/redact";
 import { applyOps, describeOps } from "@/lib/plan/applyOps";
 import { planReel } from "@/lib/plan/autoPlan";
 import { alignEvents, offsetFor, syncPrompt } from "@/lib/timeline/align";
+import { findDictation } from "@/lib/audio/findDictation";
 import { buildSteps } from "@/lib/timeline/steps";
 import { openProject, PROMPT_MAX } from "@/shared/project";
 import type {
@@ -41,6 +42,8 @@ type Inputs = {
   constraints: Constraints;
   // Step titles the model wrote; user titles in constraints.titles still win over them.
   autoTitles: Record<number, string>;
+  // Where each prompt was spoken, found in the recording's audio once steps are final.
+  dictation: Record<number, [number, number]>;
 };
 
 type ProjectState = Inputs &
@@ -64,6 +67,9 @@ type ProjectState = Inputs &
     steer: (instruction: string) => Promise<SteerOutcome>;
     undo: () => void;
     redo: () => void;
+    // Shared by the preview and the export, so what plays is what gets rendered.
+    cleanVoice: boolean;
+    setCleanVoice: (on: boolean) => void;
   };
 
 const DEFAULT_CONSTRAINTS: Constraints = {
@@ -82,12 +88,16 @@ const HISTORY = 50;
 // Matches the request schema's cap; longer sessions are steered with the toggles.
 const MAX_STEER_STEPS = 80;
 
-function derive({ recording, log, offsetS, constraints, autoTitles }: Inputs): Derived {
+function derive({ recording, log, offsetS, constraints, autoTitles, dictation }: Inputs): Derived {
   if (!recording || !log) return EMPTY;
   const { probe, activity } = recording;
   const events = alignEvents(log.events, probe.startedAt, offsetS);
   const built = buildSteps(events, probe.durationS, activity);
-  const steps = built.steps.map((s) => ({ ...s, title: autoTitles[s.index] ?? s.title }));
+  const steps = built.steps.map((s) => ({
+    ...s,
+    title: autoTitles[s.index] ?? s.title,
+    dictation: dictation[s.index],
+  }));
   return {
     steps,
     droppedSteps: built.droppedSteps,
@@ -150,6 +160,26 @@ export const useProject = create<ProjectState>()((set, get) => {
     if (titles && asked === generation) update({ autoTitles: titles });
   };
 
+  // Hearing the prompt is a bonus: a recording with no microphone or no clear speech keeps silent
+  // cards, so a failure is reported and the reel stays as it is.
+  const listenForPrompts = async () => {
+    const asked = generation;
+    const { recording, steps } = get();
+    if (!recording) return;
+    const found = await findDictation(recording.file, steps).catch((error: unknown) => {
+      reportError(error);
+      return undefined;
+    });
+    if (found && asked === generation) update({ dictation: found });
+  };
+
+  // Once steps are final (after sync, or straight away for a saved project) they are named and
+  // their dictation is found.
+  const finishSteps = (named: boolean) => {
+    if (!named) void nameSteps();
+    void listenForPrompts();
+  };
+
   // A change that changes nothing keeps the redo stack intact.
   const commit = (constraints: Constraints) => {
     const { constraints: current, past } = get();
@@ -162,9 +192,12 @@ export const useProject = create<ProjectState>()((set, get) => {
     offsetS: 0,
     constraints: DEFAULT_CONSTRAINTS,
     autoTitles: {},
+    dictation: {},
     ...EMPTY,
     synced: false,
     importing: false,
+    cleanVoice: true,
+    setCleanVoice: (on) => set({ cleanVoice: on }),
     past: [],
     future: [],
 
@@ -216,8 +249,9 @@ export const useProject = create<ProjectState>()((set, get) => {
           offsetS: opened?.offsetS ?? 0,
           constraints: opened ? redactConstraints(opened.constraints) : DEFAULT_CONSTRAINTS,
           autoTitles: opened ? redactTexts(opened.autoTitles) : {},
+          dictation: {},
         });
-        if (opened && Object.keys(opened.autoTitles).length === 0) void nameSteps();
+        if (opened) finishSteps(Object.keys(opened.autoTitles).length > 0);
       } catch (error) {
         if (current === generation) {
           set({ importError: error instanceof Error ? error.message : String(error) });
@@ -236,7 +270,7 @@ export const useProject = create<ProjectState>()((set, get) => {
     },
     confirmSync: () => {
       set({ synced: true });
-      void nameSteps();
+      finishSteps(false);
     },
 
     reset: () => {
