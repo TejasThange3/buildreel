@@ -1,0 +1,16 @@
+{
+  "app": "buildreel",
+  "version": 1,
+  "recording": { "name": "buildreel-sample.mp4", "durationS": 1023.93 },
+  "offsetS": -0.8,
+  "constraints": {
+    "targetS": 90,
+    "pinned": [],
+    "dropped": [],
+    "emphasis": {},
+    "speed": {},
+    "titles": {},
+    "prompts": {},
+    "hiddenPrompts": []
+  }
+}
