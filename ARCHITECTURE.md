@@ -356,7 +356,7 @@ buildreel/
   package.json  tsconfig.json  next.config.ts  eslint.config.mjs  vitest.config.ts
   .env.example                   LLM_API_KEY, LLM_BASE_URL, LLM_MODEL, UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
   public/
-    sample/project.json          offset, cached titles (autoTitles), constraints
+    sample/project.json          start time, offset, cached titles (autoTitles), constraints
     sample/session.jsonl         trimmed to the recording window: prompts, tool names, file names and
                                  command descriptions only (no file contents, paths or replies)
     sample/recording.mp4         720p, under ~20 MB; else Vercel Blob
@@ -396,7 +396,7 @@ buildreel/
     lib/render/srt.ts          ~30
     lib/render/postDraft.ts    ~40
     lib/render/cleanVoice.ts   ~50   resample + RNNoise framing for voice cleanup
-    state/sample.ts            ~30   fetches the sample; its mtime pins the start time in any timezone
+    state/sample.ts            ~25   fetches the sample; project.json pins its start time in any timezone
     ui/DropZone.tsx  ui/SyncPanel.tsx  ui/Player.tsx  ui/Timeline.tsx
     ui/StepList.tsx  ui/SteerBox.tsx   ui/ExportPanel.tsx      each ~60-150
     ui/landing/Hero.tsx  ui/landing/HowItWorks.tsx            each ~80
