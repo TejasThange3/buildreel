@@ -23,7 +23,7 @@ const Completion = z.object({
 });
 
 const TIMEOUT_MS = 20_000;
-// A steer answer is a handful of ops; the cap bounds cost if the model runs on.
+// A steer answer is a handful of ops; the default cap bounds cost if the model runs on.
 const MAX_TOKENS = 1024;
 
 // One chat completion from any OpenAI-compatible endpoint, constrained to a JSON schema. Returns the
@@ -32,6 +32,7 @@ export async function chatJson(
   messages: ChatMessage[],
   schemaName: string,
   schema: Record<string, unknown>,
+  maxTokens = MAX_TOKENS,
 ): Promise<string> {
   const env = Env.safeParse(process.env);
   if (!env.success) throw new LlmUnavailableError("The language model is not configured.");
@@ -48,8 +49,8 @@ export async function chatJson(
         model: LLM_MODEL,
         messages,
         temperature: 0,
-        max_completion_tokens: MAX_TOKENS,
-        // Steering is a short mapping task; low effort keeps the answer under a couple of seconds.
+        max_completion_tokens: maxTokens,
+        // Both tasks are short mappings; low effort keeps answers under a couple of seconds.
         reasoning_effort: "low",
         response_format: {
           type: "json_schema",
