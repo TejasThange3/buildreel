@@ -1,20 +1,12 @@
 import { SteerRequestSchema } from "@/shared/steer";
 import { LlmBusyError, LlmUnavailableError } from "@/server/llm";
 import { checkRateLimit } from "@/server/rateLimit";
+import { clientIp, rateLimited, unavailable } from "@/server/responses";
 import { planSteer } from "@/server/steer";
-
-const rateLimited = (retryAfterS: number) =>
-  Response.json(
-    { error: "rate limited", retryAfterS },
-    { status: 429, headers: { "Retry-After": String(retryAfterS) } },
-  );
-
-const unavailable = () => Response.json({ error: "steering unavailable" }, { status: 503 });
 
 // ARCHITECTURE.md section 9. Nothing from the request is logged.
 export async function POST(request: Request) {
-  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
-  const limit = await checkRateLimit(ip);
+  const limit = await checkRateLimit(clientIp(request));
   if (limit.status === "limited") return rateLimited(limit.retryAfterS);
   if (limit.status === "unavailable") return unavailable();
 
