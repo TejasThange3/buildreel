@@ -1,7 +1,7 @@
 "use client";
 
 import { PauseIcon, PlayIcon } from "@phosphor-icons/react";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { formatTime } from "@/lib/format";
 import {
   keyframeAt,
@@ -16,6 +16,7 @@ import { usePlayback } from "@/state/playback";
 import { useProject } from "@/state/store";
 import { readFonts } from "./overlayFonts";
 import { connectPreviewSound, type PreviewSound } from "./previewSound";
+import { useShortcuts } from "./useShortcuts";
 
 // Browsers cap playbackRate at 16; faster fast-forwards are drawn from keyframes instead.
 // Real-time playback re-seeks only when it drifts this far, so seeks do not stutter it.
@@ -76,6 +77,14 @@ function steerVoice(voice: HTMLAudioElement, r: Remapped, entered: boolean, play
   if (entered) voice.currentTime = t;
   else seekIfFar(voice, t, DRIFT_S);
   if (voice.paused) void voice.play().catch(ignoreInterruptedPlay);
+}
+
+function Key({ children }: { children: string }) {
+  return (
+    <kbd className="rounded border border-line px-1 py-0.5 font-mono text-[11px] text-fg-muted">
+      {children}
+    </kbd>
+  );
 }
 
 export function Player() {
@@ -207,16 +216,18 @@ export function Player() {
     return () => cancelAnimationFrame(frame);
   }, [edl, recording]);
 
-  if (!recording) return null;
-  const toggle = () => {
-    // Audio may start only from a click, so the sound graph is built on the first play.
+  // Audio may start only from a click or key, so the sound graph is built on the first play.
+  const toggle = useCallback(() => {
     if (!sound.current && video.current && voice.current)
       sound.current = connectPreviewSound([video.current, voice.current]);
     sound.current?.resume();
     const { outT, playing, seek, setPlaying } = usePlayback.getState();
     if (!playing && outT >= edl.totalS) seek(0);
     setPlaying(!playing);
-  };
+  }, [edl.totalS]);
+  useShortcuts(toggle);
+
+  if (!recording) return null;
 
   return (
     <div>
@@ -237,6 +248,10 @@ export function Player() {
         <span className="font-mono text-sm text-fg-muted tabular-nums">
           <span ref={clock}>0:00.0</span> / {formatTime(edl.totalS)}
         </span>
+        <p className="ml-auto hidden text-xs text-fg-subtle md:block">
+          <Key>Space</Key> play <Key>←</Key> <Key>→</Key> 5 s <Key>Shift</Key> + arrow step{" "}
+          <Key>Ctrl</Key> <Key>Z</Key> undo
+        </p>
       </div>
     </div>
   );
