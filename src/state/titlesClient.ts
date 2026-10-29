@@ -1,3 +1,4 @@
+import { redact } from "@/lib/log/redact";
 import { type TitlesRequest, TitlesResponseSchema } from "@/shared/titles";
 import type { Constraints, Step } from "@/shared/types";
 
@@ -32,5 +33,6 @@ export async function requestTitles(
   if (!response?.ok) return undefined;
   const reply = TitlesResponseSchema.safeParse(await response.json().catch(() => undefined));
   if (!reply.success) return undefined;
-  return Object.fromEntries(reply.data.titles.map((t) => [t.index, t.title]));
+  // Titles become captions, so model text is redacted like any prompt, whatever it was told.
+  return Object.fromEntries(reply.data.titles.map((t) => [t.index, redact(t.title)]));
 }
