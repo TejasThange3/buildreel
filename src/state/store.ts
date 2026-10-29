@@ -56,6 +56,8 @@ type ProjectState = Inputs &
     future: Constraints[];
     toggleStep: (index: number) => void;
     setTarget: (seconds: number) => void;
+    editPrompt: (index: number, text: string) => void;
+    togglePrompt: (index: number) => void;
     steer: (instruction: string) => Promise<SteerOutcome>;
     undo: () => void;
     redo: () => void;
@@ -224,6 +226,25 @@ export const useProject = create<ProjectState>()((set, get) => {
     },
 
     setTarget: (seconds) => commit({ ...get().constraints, targetS: seconds }),
+
+    // Typed text can carry a pasted key, so it is redacted like a parsed prompt. Clearing the
+    // box, or typing the original back, returns to the prompt from the log.
+    editPrompt: (index, text) => {
+      const { constraints, steps } = get();
+      const clean = redact(text.trim());
+      const prompts = { ...constraints.prompts };
+      delete prompts[index];
+      const original = steps.find((s) => s.index === index)?.prompt;
+      if (clean && clean !== original) prompts[index] = clean;
+      commit({ ...constraints, prompts });
+    },
+
+    togglePrompt: (index) => {
+      const { constraints } = get();
+      const hidden = constraints.hiddenPrompts;
+      const next = hidden.includes(index) ? hidden.filter((i) => i !== index) : [...hidden, index];
+      commit({ ...constraints, hiddenPrompts: next });
+    },
 
     steer: async (instruction) => {
       const { steps, edl, constraints } = get();
