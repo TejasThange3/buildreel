@@ -7,6 +7,7 @@ import { buildSrt } from "@/lib/render/srt";
 import { useProject } from "@/state/store";
 import { download, downloadText } from "./download";
 import { readFonts } from "./overlayFonts";
+import { Segmented } from "./Segmented";
 
 type Status =
   | { kind: "idle" }
@@ -86,25 +87,14 @@ export function ExportPanel() {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div
-          role="radiogroup"
-          aria-label="Export resolution"
-          className="inline-flex rounded-full bg-surface p-1 outline outline-1 -outline-offset-1 outline-line"
-        >
-          {HEIGHTS.map((h) => (
-            <button
-              key={h}
-              type="button"
-              role="radio"
-              aria-checked={height === h}
-              disabled={status.kind === "running"}
-              onClick={() => setHeight(h)}
-              className="h-8 rounded-full px-3.5 font-mono text-xs text-fg-muted tabular-nums transition-colors hover:text-fg disabled:opacity-50 aria-checked:bg-fg aria-checked:text-canvas aria-checked:hover:text-canvas"
-            >
-              {h}p
-            </button>
-          ))}
-        </div>
+        <Segmented
+          label="Export resolution"
+          options={HEIGHTS.map((h) => ({ value: h, label: `${h}p` }))}
+          value={height}
+          onChange={setHeight}
+          disabled={status.kind === "running"}
+          mono
+        />
         {status.kind === "running" ? (
           <button
             type="button"

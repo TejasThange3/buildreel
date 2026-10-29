@@ -1,6 +1,7 @@
 "use client";
 
 import { useProject } from "@/state/store";
+import { Segmented } from "./Segmented";
 
 const TARGETS = [30, 60, 90];
 
@@ -8,24 +9,14 @@ export function TargetPicker() {
   const targetS = useProject((s) => s.constraints.targetS);
   const setTarget = useProject((s) => s.setTarget);
 
+  // A steered length such as 45 s has no button, so none is checked until one is picked.
   return (
-    <div
-      role="radiogroup"
-      aria-label="Reel length"
-      className="inline-flex rounded-full bg-surface p-1 outline outline-1 -outline-offset-1 outline-line"
-    >
-      {TARGETS.map((s) => (
-        <button
-          key={s}
-          type="button"
-          role="radio"
-          aria-checked={targetS === s}
-          onClick={() => setTarget(s)}
-          className="h-8 rounded-full px-3.5 font-mono text-xs text-fg-muted tabular-nums transition-colors aria-checked:bg-fg aria-checked:text-canvas hover:text-fg aria-checked:hover:text-canvas"
-        >
-          {s}s
-        </button>
-      ))}
-    </div>
+    <Segmented
+      label="Reel length"
+      options={TARGETS.map((s) => ({ value: s, label: `${s}s` }))}
+      value={targetS}
+      onChange={setTarget}
+      mono
+    />
   );
 }
