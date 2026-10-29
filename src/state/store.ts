@@ -19,6 +19,7 @@ import type {
   VideoProbe,
 } from "@/shared/types";
 import { requestSteer, steerRequest } from "./steerClient";
+import { requestTitles, titlesRequest } from "./titlesClient";
 
 export type Recording = {
   file: File;
@@ -38,6 +39,8 @@ type Inputs = {
   log?: ParsedLog;
   offsetS: number;
   constraints: Constraints;
+  // Step titles the model wrote; user titles in constraints.titles still win over them.
+  autoTitles: Record<number, string>;
 };
 
 type ProjectState = Inputs &
@@ -79,12 +82,17 @@ const HISTORY = 50;
 // Matches the request schema's cap; longer sessions are steered with the toggles.
 const MAX_STEER_STEPS = 80;
 
-function derive({ recording, log, offsetS, constraints }: Inputs): Derived {
+function derive({ recording, log, offsetS, constraints, autoTitles }: Inputs): Derived {
   if (!recording || !log) return EMPTY;
   const { probe, activity } = recording;
   const events = alignEvents(log.events, probe.startedAt, offsetS);
-  const { steps, droppedSteps } = buildSteps(events, probe.durationS, activity);
-  return { steps, droppedSteps, edl: planReel(steps, activity, constraints, probe.durationS) };
+  const built = buildSteps(events, probe.durationS, activity);
+  const steps = built.steps.map((s) => ({ ...s, title: autoTitles[s.index] ?? s.title }));
+  return {
+    steps,
+    droppedSteps: built.droppedSteps,
+    edl: planReel(steps, activity, constraints, probe.durationS),
+  };
 }
 
 const isLog = (file: File) => file.name.toLowerCase().endsWith(".jsonl");
@@ -117,6 +125,16 @@ export const useProject = create<ProjectState>()((set, get) => {
     set({ ...patch, ...derive(next) });
   };
 
+  // Steps are named once they are final, after sync. Titles arriving for an older import are
+  // dropped; titles the user typed meanwhile still win, as they always do.
+  const nameSteps = async () => {
+    const asked = generation;
+    const request = titlesRequest(get().steps, get().constraints);
+    if (!request) return;
+    const titles = await requestTitles(request);
+    if (titles && asked === generation) update({ autoTitles: titles });
+  };
+
   // A change that changes nothing keeps the redo stack intact.
   const commit = (constraints: Constraints) => {
     const { constraints: current, past } = get();
@@ -128,6 +146,7 @@ export const useProject = create<ProjectState>()((set, get) => {
   return {
     offsetS: 0,
     constraints: DEFAULT_CONSTRAINTS,
+    autoTitles: {},
     ...EMPTY,
     synced: false,
     importing: false,
@@ -180,7 +199,9 @@ export const useProject = create<ProjectState>()((set, get) => {
           log,
           offsetS: opened?.offsetS ?? 0,
           constraints: opened?.constraints ?? DEFAULT_CONSTRAINTS,
+          autoTitles: opened?.autoTitles ?? {},
         });
+        if (opened && Object.keys(opened.autoTitles).length === 0) void nameSteps();
       } catch (error) {
         if (current === generation) {
           set({ importError: error instanceof Error ? error.message : String(error) });
@@ -197,7 +218,10 @@ export const useProject = create<ProjectState>()((set, get) => {
         update({ offsetS: offsetFor(syncTarget, recording.probe.startedAt, videoT) });
       }
     },
-    confirmSync: () => set({ synced: true }),
+    confirmSync: () => {
+      set({ synced: true });
+      void nameSteps();
+    },
 
     reset: () => {
       generation++;
