@@ -20,6 +20,7 @@ export function ExportPanel() {
   const recording = useProject((s) => s.recording);
   const edl = useProject((s) => s.edl);
   const [height, setHeight] = useState(1080);
+  const [clean, setClean] = useState(true);
   const [status, setStatus] = useState<Status>({ kind: "idle" });
   const abort = useRef<AbortController>(undefined);
   // WebCodecs is the whole pipeline; without it only the preview works.
@@ -50,6 +51,7 @@ export function ExportPanel() {
         keyTimes: recording.keyTimes,
         fonts: readFonts(),
         maxHeight: height,
+        cleanVoice: clean,
         onProgress: (progress) => setStatus({ kind: "running", progress }),
         signal: controller.signal,
       });
@@ -133,6 +135,25 @@ export function ExportPanel() {
         )}
       </div>
 
+      <label className="flex cursor-pointer items-start justify-between gap-3">
+        <span className="min-w-0">
+          <span className="block text-sm">Clean up voice</span>
+          <span className="mt-0.5 block text-xs leading-relaxed text-fg-subtle">
+            Cuts fan, street and keyboard noise from the parts that play at normal speed.
+          </span>
+        </span>
+        <span className="relative mt-0.5 inline-flex h-6 w-10 shrink-0 items-center">
+          <input
+            type="checkbox"
+            checked={clean}
+            disabled={status.kind === "running"}
+            onChange={(event) => setClean(event.target.checked)}
+            className="peer sr-only"
+          />
+          <span className="absolute inset-0 rounded-full bg-raised outline outline-1 -outline-offset-1 outline-line transition-colors peer-checked:bg-fg peer-focus-visible:outline-2 peer-focus-visible:outline-fg peer-disabled:opacity-50" />
+          <span className="relative ml-1 size-4 rounded-full bg-fg-subtle transition-transform duration-200 ease-[var(--ease-out-expo)] peer-checked:translate-x-4 peer-checked:bg-canvas" />
+        </span>
+      </label>
       {status.kind === "running" && (
         <div>
           <div
