@@ -299,6 +299,13 @@ voice cleanup (on by default): each real-time window is mixed to mono, resampled
        (@shiguredo/rnnoise-wasm, loaded only for such an export) in 480-sample frames with a fresh state per
        window, resampled back and written to every channel before the fades. On a real recording speech
        stayed within 1 dB while background noise fell by about 40 dB.
+dictation: after sync, the half minute before each prompt (never before the previous one) is decoded and
+       run through RNNoise for its voice-activity score; the last stretch of speech (50 ms centred average
+       over 0.5, gaps up to 0.7 s, at least 0.6 s of speech, at most 15 s) becomes step.dictation. The prompt
+       card lasts at least that long and plays it, cleaned like the real-time parts.
+preview: the player's video and a second <audio> element for dictation clips run through the same model
+       (ScriptProcessorNode at 48 kHz, since this RNNoise build will not load in an AudioWorklet), so the
+       preview sounds like the export. "Clean up voice" is one setting for both.
 mux to MP4 in memory -> Blob -> download
 ```
 Library: Mediabunny (WebCodecs-based demux/decode/encode/mux). Fallback if a Day 1 spike fails: ffmpeg.wasm (needs COOP/COEP headers, set in `next.config.ts` headers for the editor route only).
@@ -395,7 +402,10 @@ buildreel/
     lib/render/exportMp4.ts    ~150
     lib/render/srt.ts          ~30
     lib/render/postDraft.ts    ~40
-    lib/render/cleanVoice.ts   ~50   resample + RNNoise framing for voice cleanup
+    lib/audio/cleanVoice.ts    ~60   resample + RNNoise framing for voice cleanup
+    lib/audio/dictation.ts     ~60   voice activity per frame, last stretch of speech
+    lib/audio/findDictation.ts ~60   decodes the audio before each prompt and finds the dictation
+    lib/audio/streamCleaner.ts ~40   RNNoise on live blocks for the preview
     state/sample.ts            ~25   fetches the sample; project.json pins its start time in any timezone
     ui/DropZone.tsx  ui/SyncPanel.tsx  ui/Player.tsx  ui/Timeline.tsx
     ui/StepList.tsx  ui/SteerBox.tsx   ui/ExportPanel.tsx      each ~60-150
