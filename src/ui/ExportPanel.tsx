@@ -16,11 +16,17 @@ type Status =
   | { kind: "failed"; message: string };
 
 const HEIGHTS = [1080, 720];
+type Shape = "wide" | "vertical";
+const SHAPES: { value: Shape; label: string }[] = [
+  { value: "wide", label: "16:9" },
+  { value: "vertical", label: "9:16" },
+];
 
 export function ExportPanel() {
   const recording = useProject((s) => s.recording);
   const edl = useProject((s) => s.edl);
   const [height, setHeight] = useState(1080);
+  const [shape, setShape] = useState<Shape>("wide");
   const clean = useProject((s) => s.cleanVoice);
   const setClean = useProject((s) => s.setCleanVoice);
   const [status, setStatus] = useState<Status>({ kind: "idle" });
@@ -53,6 +59,7 @@ export function ExportPanel() {
         keyTimes: recording.keyTimes,
         fonts: readFonts(),
         maxHeight: height,
+        vertical: shape === "vertical",
         cleanVoice: clean,
         onProgress: (progress) => setStatus({ kind: "running", progress }),
         signal: controller.signal,
@@ -63,7 +70,7 @@ export function ExportPanel() {
         return;
       }
       const url = URL.createObjectURL(blob);
-      const name = `${baseName}-reel.mp4`;
+      const name = `${baseName}-reel${shape === "vertical" ? "-vertical" : ""}.mp4`;
       setStatus({ kind: "done", url, name });
       download(url, name);
     } catch (error) {
@@ -88,14 +95,24 @@ export function ExportPanel() {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <Segmented
-          label="Export resolution"
-          options={HEIGHTS.map((h) => ({ value: h, label: `${h}p` }))}
-          value={height}
-          onChange={setHeight}
-          disabled={status.kind === "running"}
-          mono
-        />
+        <div className="flex gap-2">
+          <Segmented
+            label="Export shape"
+            options={SHAPES}
+            value={shape}
+            onChange={setShape}
+            disabled={status.kind === "running"}
+            mono
+          />
+          <Segmented
+            label="Export resolution"
+            options={HEIGHTS.map((h) => ({ value: h, label: `${h}p` }))}
+            value={height}
+            onChange={setHeight}
+            disabled={status.kind === "running"}
+            mono
+          />
+        </div>
         {status.kind === "running" ? (
           <button
             type="button"

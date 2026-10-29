@@ -27,6 +27,9 @@ export type ExportOptions = {
   keyTimes: number[];
   fonts: OverlayFonts;
   maxHeight: number;
+  // A 9:16 frame for Shorts and Reels: the screen sits across the middle at full width and the
+  // cards and captions use the space below it.
+  vertical: boolean;
   cleanVoice: boolean;
   onProgress: (fraction: number) => void;
   signal: AbortSignal;
@@ -68,6 +71,7 @@ export async function exportMp4({
   keyTimes,
   fonts,
   maxHeight,
+  vertical,
   cleanVoice: clean,
   onProgress,
   signal,
@@ -76,8 +80,9 @@ export async function exportMp4({
   try {
     const video = await input.getPrimaryVideoTrack();
     if (!video) throw new Error(`${file.name} has no video track.`);
-    const height = even(Math.min(maxHeight, video.displayHeight));
-    const width = even((height * video.displayWidth) / video.displayHeight);
+    const short = even(Math.min(maxHeight, video.displayHeight));
+    const width = vertical ? short : even((short * video.displayWidth) / video.displayHeight);
+    const height = vertical ? even((short * 16) / 9) : short;
     const videoCodec = await getFirstEncodableVideoCodec(["avc", "vp9", "av1"], {
       width,
       height,
