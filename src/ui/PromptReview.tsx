@@ -2,6 +2,7 @@
 
 import { EyeIcon, EyeSlashIcon } from "@phosphor-icons/react";
 import { useState } from "react";
+import { PROMPT_MAX } from "@/shared/project";
 import { useProject } from "@/state/store";
 import type { Step } from "@/shared/types";
 
@@ -11,11 +12,18 @@ function PromptRow({ step, text, edited, hidden }: RowProps) {
   const editPrompt = useProject((s) => s.editPrompt);
   const togglePrompt = useProject((s) => s.togglePrompt);
   const [draft, setDraft] = useState(text);
+  // Undo, redo and saving change the text from outside; the draft follows without remounting the
+  // row, so a click on Hide that ends an edit still lands on its button.
+  const [shown, setShown] = useState(text);
+  if (text !== shown) {
+    setShown(text);
+    setDraft(text);
+  }
 
   // Edits land on blur, so one change is one undo step rather than one per keystroke.
   const save = () => {
     editPrompt(step.index, draft);
-    if (!draft.trim()) setDraft(step.prompt);
+    if (!draft.trim()) setDraft(text);
   };
 
   return (
@@ -28,6 +36,7 @@ function PromptRow({ step, text, edited, hidden }: RowProps) {
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
           onBlur={save}
+          maxLength={PROMPT_MAX}
           disabled={hidden}
           rows={2}
           aria-label={`Prompt card for step ${step.index}`}
@@ -63,10 +72,9 @@ export function PromptReview() {
     <ol className="flex flex-col gap-1" aria-label="Prompt cards">
       {steps.map((step) => {
         const text = prompts[step.index] ?? step.prompt;
-        // Undo and redo change the text from outside, so a new text gives the row a fresh draft.
         return (
           <PromptRow
-            key={`${step.index}:${text}`}
+            key={step.index}
             step={step}
             text={text}
             edited={step.index in prompts}
