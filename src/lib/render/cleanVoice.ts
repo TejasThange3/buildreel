@@ -37,16 +37,21 @@ export function cleanVoice(
       mono[i] = (mono[i] ?? 0) + (plane[start + i] ?? 0) / planes.length;
 
   const voice = resample(mono, sampleRate, DENOISE_RATE);
+  // RNNoise answers each frame with the one before it, so one frame of silence goes in after the
+  // voice to flush its tail, and the output is read one frame late. Frames past the end are silent.
+  const frames = Math.ceil(voice.length / frameSize) + 1;
+  const output = new Float32Array(frames * frameSize);
   const frame = new Float32Array(frameSize);
-  for (let at = 0; at < voice.length; at += frameSize) {
-    // The last frame is padded with silence and only its real samples are kept.
-    frame.fill(0);
-    const take = Math.min(frameSize, voice.length - at);
-    for (let i = 0; i < take; i++) frame[i] = (voice[at + i] ?? 0) * PCM_SCALE;
+  for (let k = 0; k < frames; k++) {
+    for (let i = 0; i < frameSize; i++) frame[i] = (voice[k * frameSize + i] ?? 0) * PCM_SCALE;
     processFrame(frame);
-    for (let i = 0; i < take; i++) voice[at + i] = (frame[i] ?? 0) / PCM_SCALE;
+    for (let i = 0; i < frameSize; i++) output[k * frameSize + i] = (frame[i] ?? 0) / PCM_SCALE;
   }
 
-  const clean = resample(voice, DENOISE_RATE, sampleRate);
+  const clean = resample(
+    output.subarray(frameSize, frameSize + voice.length),
+    DENOISE_RATE,
+    sampleRate,
+  );
   for (const plane of planes) plane.set(clean.subarray(0, length), start);
 }

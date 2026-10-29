@@ -20,24 +20,29 @@ describe("resample", () => {
 });
 
 describe("cleanVoice", () => {
-  // A stand-in model that halves every sample and records the frames it saw.
+  // A stand-in model that, like RNNoise, answers each frame with the previous one, halved, and
+  // records the loudest sample of each frame it saw.
   const halving = () => {
     const seen: number[] = [];
+    let previous = new Float32Array(0);
     const process = (frame: Float32Array) => {
       seen.push(Math.max(...frame.map(Math.abs)));
-      for (let i = 0; i < frame.length; i++) frame[i] = (frame[i] ?? 0) / 2;
+      const input = frame.slice();
+      frame.fill(0);
+      previous.forEach((v, i) => (frame[i] = v / 2));
+      previous = input;
     };
     return { seen, process };
   };
 
-  it("feeds 16-bit scaled frames, pads the last one, and writes the voice to every channel", () => {
+  it("feeds 16-bit scaled frames, flushes the model's lag, and writes every channel", () => {
     const left = new Float32Array(1200).fill(0.5);
     const right = new Float32Array(1200).fill(0.1);
     const model = halving();
     cleanVoice([left, right], 100, 1100, DENOISE_RATE, 480, model.process);
-    // 1000 samples make two full frames and one padded frame.
+    // 1000 samples make two full frames and one padded frame, then one silent flush frame.
     expect(model.seen).toEqual(
-      [0.3 * 32_768, 0.3 * 32_768, 0.3 * 32_768].map((v) => Math.fround(v)),
+      [0.3 * 32_768, 0.3 * 32_768, 0.3 * 32_768, 0].map((v) => Math.fround(v)),
     );
     expect(left[100]).toBeCloseTo(0.15, 6);
     expect(right[1099]).toBeCloseTo(0.15, 6);
