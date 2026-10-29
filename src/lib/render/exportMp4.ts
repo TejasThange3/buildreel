@@ -14,7 +14,8 @@ import { openVideo } from "@/lib/media/probe";
 import type { EDL } from "@/shared/types";
 import { drawOverlay, type OverlayFonts } from "./drawOverlay";
 import { FPS, outputFrames } from "./frames";
-import { audioSamples, realWindows, renderReelAudio } from "./reelAudio";
+import { cleanVoice } from "./cleanVoice";
+import { audioSamples, realWindows, renderReelAudio, type WindowFilter } from "./reelAudio";
 
 // The browser cannot encode a format this export needs; the UI shows it as a capability message.
 export class ExportUnsupportedError extends Error {}
@@ -25,6 +26,7 @@ export type ExportOptions = {
   keyTimes: number[];
   fonts: OverlayFonts;
   maxHeight: number;
+  cleanVoice: boolean;
   onProgress: (fraction: number) => void;
   signal: AbortSignal;
 };
@@ -42,6 +44,23 @@ const yieldToPage = () =>
 
 const even = (n: number) => Math.max(2, Math.round(n / 2) * 2);
 
+// The model is a few megabytes, so it loads only for an export that asks for clean voice. Each
+// window gets a fresh state: noise heard before a cut says nothing about the next moment.
+async function voiceFilter(sampleRate: number): Promise<WindowFilter> {
+  const { Rnnoise } = await import("@shiguredo/rnnoise-wasm");
+  const rnnoise = await Rnnoise.load();
+  return (planes, start, end) => {
+    const state = rnnoise.createDenoiseState();
+    try {
+      cleanVoice(planes, start, end, sampleRate, rnnoise.frameSize, (frame) =>
+        state.processFrame(frame),
+      );
+    } finally {
+      state.destroy();
+    }
+  };
+}
+
 // ARCHITECTURE.md 6.9: every output frame is remapped to its source moment, decoded in order,
 // drawn with the same overlay as the preview and encoded; sound comes only from real-time parts.
 export async function exportMp4({
@@ -50,6 +69,7 @@ export async function exportMp4({
   keyTimes,
   fonts,
   maxHeight,
+  cleanVoice: clean,
   onProgress,
   signal,
 }: ExportOptions): Promise<Blob> {
@@ -109,6 +129,7 @@ export async function exportMp4({
           audio.sampleRate,
           channels,
           signal,
+          clean ? await voiceFilter(audio.sampleRate) : undefined,
         );
         for (const sample of audioSamples(planes, audio.sampleRate)) {
           try {

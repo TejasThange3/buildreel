@@ -28,14 +28,18 @@ export function fadeEdges(channel: Float32Array, start: number, end: number, sam
   }
 }
 
+// Rewrites planes[c][start, end) in place, such as removing background noise from a window.
+export type WindowFilter = (planes: Float32Array[], start: number, end: number) => void;
+
 // The reel's whole soundtrack as one plane per channel: silence, with each real-time window's
-// source audio written at its output time and faded at the cuts.
+// source audio written at its output time, filtered, and faded at the cuts.
 export async function renderReelAudio(
   sink: AudioSampleSink,
   edl: EDL,
   sampleRate: number,
   channels: number,
   signal: AbortSignal,
+  filter?: WindowFilter,
 ): Promise<Float32Array[]> {
   const length = Math.ceil(edl.totalS * sampleRate);
   const planes = Array.from({ length: channels }, () => new Float32Array(length));
@@ -68,7 +72,9 @@ export async function renderReelAudio(
         sample.close();
       }
     }
-    if (last > first) for (const plane of planes) fadeEdges(plane, first, last, sampleRate);
+    if (last <= first) continue;
+    filter?.(planes, first, last);
+    for (const plane of planes) fadeEdges(plane, first, last, sampleRate);
   }
   return planes;
 }
