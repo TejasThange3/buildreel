@@ -45,7 +45,6 @@ function realPart(step: Step, activity: ActivityTrack, emphasized: boolean): Par
   return { dur, min: Math.min(dur, 3), max: reviewLen };
 }
 
-// The card text: the user's edit if any, nothing when hidden.
 function cardText(step: Step, constraints: Constraints): string | undefined {
   if (constraints.hiddenPrompts.includes(step.index)) return undefined;
   return constraints.prompts[step.index] ?? step.prompt;
