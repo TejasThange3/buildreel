@@ -8,6 +8,7 @@ import { applyOps, describeOps } from "@/lib/plan/applyOps";
 import { planReel } from "@/lib/plan/autoPlan";
 import { alignEvents, offsetFor, syncPrompt } from "@/lib/timeline/align";
 import { buildSteps } from "@/lib/timeline/steps";
+import { openProject } from "@/shared/project";
 import type {
   ActivityTrack,
   BuildEvent,
@@ -83,6 +84,7 @@ function derive({ recording, log, offsetS, constraints }: Inputs): Derived {
 }
 
 const isLog = (file: File) => file.name.toLowerCase().endsWith(".jsonl");
+const isProject = (file: File) => file.name.toLowerCase().endsWith(".json");
 
 // The object URL is created by the caller only once the whole import has succeeded.
 async function readRecording(file: File): Promise<Omit<Recording, "url">> {
@@ -130,33 +132,51 @@ export const useProject = create<ProjectState>()((set, get) => {
 
     importFiles: async (files) => {
       const logs = files.filter(isLog);
-      const videos = files.filter((f) => !isLog(f));
+      const projects = files.filter(isProject);
+      const videos = files.filter((f) => !isLog(f) && !isProject(f));
       const [video] = videos;
-      if (!video || videos.length > 1 || logs.length === 0) {
-        set({ importError: "Drop one screen recording and at least one Claude Code .jsonl log." });
+      const [project] = projects;
+      if (!video || videos.length > 1 || logs.length === 0 || projects.length > 1) {
+        set({
+          importError:
+            "Drop one screen recording and at least one Claude Code .jsonl log, plus a saved project if you have one.",
+        });
         return;
       }
       if (get().importing) return;
       const current = ++generation;
       set({ importing: true, importError: undefined });
       try {
-        const [read, texts] = await Promise.all([
+        const [read, texts, projectText] = await Promise.all([
           readRecording(video),
           Promise.all(logs.map((f) => f.text())),
+          project?.text(),
         ]);
         if (current !== generation) return;
+        const opened =
+          projectText === undefined ? undefined : openProject(projectText, read.probe.durationS);
+        if (opened && !opened.ok) {
+          set({ importError: opened.message });
+          return;
+        }
         const log = parseClaudeLogs(texts);
         const previous = get().recording;
         if (previous) URL.revokeObjectURL(previous.url);
         const recording = { ...read, url: URL.createObjectURL(read.file) };
         const { startedAt, durationS } = read.probe;
+        // A saved project was synced when it was saved, so it opens straight into editing.
         set({
-          synced: false,
+          synced: opened !== undefined,
           syncTarget: syncPrompt(log.events, startedAt, durationS),
           past: [],
           future: [],
         });
-        update({ recording, log, offsetS: 0, constraints: DEFAULT_CONSTRAINTS });
+        update({
+          recording,
+          log,
+          offsetS: opened?.offsetS ?? 0,
+          constraints: opened?.constraints ?? DEFAULT_CONSTRAINTS,
+        });
       } catch (error) {
         if (current === generation) {
           set({ importError: error instanceof Error ? error.message : String(error) });
