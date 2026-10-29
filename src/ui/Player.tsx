@@ -15,6 +15,7 @@ import { drawOverlay } from "@/lib/render/drawOverlay";
 import { usePlayback } from "@/state/playback";
 import { useProject } from "@/state/store";
 import { readFonts } from "./overlayFonts";
+import { connectPreviewSound, type PreviewSound } from "./previewSound";
 
 // Browsers cap playbackRate at 16; faster fast-forwards are drawn from keyframes instead.
 // Real-time playback re-seeks only when it drifts this far, so seeks do not stutter it.
@@ -27,7 +28,7 @@ function ignoreInterruptedPlay(error: unknown) {
   if (!(error instanceof DOMException && error.name === "AbortError")) throw error;
 }
 
-function seekIfFar(video: HTMLVideoElement, t: number, tolerance: number) {
+function seekIfFar(video: HTMLMediaElement, t: number, tolerance: number) {
   if (Math.abs(video.currentTime - t) > tolerance && !video.seeking) video.currentTime = t;
 }
 
@@ -63,11 +64,27 @@ function steerVideo(
   return pending;
 }
 
+// A prompt card holds one frame while its dictation plays from a second element, since the
+// video cannot show one moment and sound another.
+function steerVoice(voice: HTMLAudioElement, r: Remapped, entered: boolean, playing: boolean) {
+  const clip = r.segment.mode === "hold" ? r.segment.voice : undefined;
+  const t = clip ? clip[0] + r.local : undefined;
+  if (!clip || t === undefined || t >= clip[1] || !playing) {
+    if (!voice.paused) voice.pause();
+    return;
+  }
+  if (entered) voice.currentTime = t;
+  else seekIfFar(voice, t, DRIFT_S);
+  if (voice.paused) void voice.play().catch(ignoreInterruptedPlay);
+}
+
 export function Player() {
   const recording = useProject((s) => s.recording);
   const edl = useProject((s) => s.edl);
   const playing = usePlayback((s) => s.playing);
   const video = useRef<HTMLVideoElement>(null);
+  const voice = useRef<HTMLAudioElement>(null);
+  const sound = useRef<PreviewSound | undefined>(undefined);
   const canvas = useRef<HTMLCanvasElement>(null);
   const clock = useRef<HTMLSpanElement>(null);
   const keyframes = useRef<KeyframeReader | undefined>(undefined);
@@ -96,11 +113,14 @@ export function Player() {
     };
   }, [recording]);
 
+  useEffect(() => () => sound.current?.close(), []);
+
   useEffect(() => {
     const v = video.current;
+    const a = voice.current;
     const c = canvas.current;
     const ctx = c?.getContext("2d");
-    if (!v || !c || !ctx || !recording) return;
+    if (!v || !a || !c || !ctx || !recording) return;
     const fonts = readFonts();
     let lastSegment = "";
     let last = performance.now();
@@ -166,6 +186,8 @@ export function Player() {
         }
         const timelapse = isTimelapse(r);
         pendingSeek = steerVideo(v, r, entered || jumped || pendingSeek, playing, timelapse);
+        steerVoice(a, r, entered || jumped, playing);
+        sound.current?.setClean(useProject.getState().cleanVoice);
         lastSegment = r.segment.id;
         const scale = Math.min(window.devicePixelRatio, 2);
         const w = Math.round(c.clientWidth * scale);
@@ -187,6 +209,10 @@ export function Player() {
 
   if (!recording) return null;
   const toggle = () => {
+    // Audio may start only from a click, so the sound graph is built on the first play.
+    if (!sound.current && video.current && voice.current)
+      sound.current = connectPreviewSound([video.current, voice.current]);
+    sound.current?.resume();
     const { outT, playing, seek, setPlaying } = usePlayback.getState();
     if (!playing && outT >= edl.totalS) seek(0);
     setPlaying(!playing);
@@ -196,6 +222,7 @@ export function Player() {
     <div>
       <div className="relative aspect-video overflow-hidden rounded-[var(--radius-panel)] bg-canvas outline outline-1 -outline-offset-1 outline-line">
         <video ref={video} src={recording.url} playsInline preload="auto" className="size-full" />
+        <audio ref={voice} src={recording.url} preload="auto" />
         <canvas ref={canvas} className="pointer-events-none absolute inset-0 size-full" />
       </div>
       <div className="mt-3 flex items-center gap-3">

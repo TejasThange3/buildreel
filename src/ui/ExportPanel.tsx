@@ -21,7 +21,8 @@ export function ExportPanel() {
   const recording = useProject((s) => s.recording);
   const edl = useProject((s) => s.edl);
   const [height, setHeight] = useState(1080);
-  const [clean, setClean] = useState(true);
+  const clean = useProject((s) => s.cleanVoice);
+  const setClean = useProject((s) => s.setCleanVoice);
   const [status, setStatus] = useState<Status>({ kind: "idle" });
   const abort = useRef<AbortController>(undefined);
   // WebCodecs is the whole pipeline; without it only the preview works.
@@ -129,7 +130,7 @@ export function ExportPanel() {
         <span className="min-w-0">
           <span className="block text-sm">Clean up voice</span>
           <span className="mt-0.5 block text-xs leading-relaxed text-fg-subtle">
-            Cuts fan, street and keyboard noise from the parts that play at normal speed.
+            Cuts fan, street and keyboard noise from your voice, in the preview and the export.
           </span>
         </span>
         <span className="relative mt-0.5 inline-flex h-6 w-10 shrink-0 items-center">
