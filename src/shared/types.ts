@@ -58,6 +58,8 @@ export type Constraints = {
   emphasis: Record<number, number>; // step -> extra real-time seconds
   speed: Record<number, number>; // step -> forced fast-forward factor
   titles: Record<number, string>;
+  prompts: Record<number, string>; // step -> prompt text as edited for the card
+  hiddenPrompts: number[]; // steps shown without their prompt card
   intro?: string;
   outro?: string;
 };

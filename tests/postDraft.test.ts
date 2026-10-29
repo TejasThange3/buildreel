@@ -26,6 +26,8 @@ const constraints: Constraints = {
   emphasis: {},
   speed: {},
   titles: { 3: "Project files" },
+  prompts: {},
+  hiddenPrompts: [],
 };
 
 describe("postDraft", () => {

@@ -11,8 +11,10 @@ const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), h
 export const wordCount = (text: string) => text.split(/\s+/).filter(Boolean).length;
 
 // The prompt card stays up long enough to read: about 3.5 words a second, 2 to 5 seconds,
-// and fitting may shorten it to 2 seconds.
-function holdPart(prompt: string): Part {
+// and fitting may shorten it to 2 seconds. A hidden card takes no time: the frame under it is
+// the moment the prompt was sent, which says nothing without the text.
+function holdPart(prompt: string | undefined): Part {
+  if (prompt === undefined) return { dur: 0, min: 0, max: 0 };
   const dur = clamp(wordCount(prompt) / 3.5, 2, 5);
   return { dur, min: Math.min(dur, 2), max: dur };
 }
@@ -43,10 +45,16 @@ function realPart(step: Step, activity: ActivityTrack, emphasized: boolean): Par
   return { dur, min: Math.min(dur, 3), max: reviewLen };
 }
 
+// The card text: the user's edit if any, nothing when hidden.
+function cardText(step: Step, constraints: Constraints): string | undefined {
+  if (constraints.hiddenPrompts.includes(step.index)) return undefined;
+  return constraints.prompts[step.index] ?? step.prompt;
+}
+
 function draftPlan(step: Step, activity: ActivityTrack, constraints: Constraints): StepPlan {
   return {
     step,
-    hold: holdPart(step.prompt),
+    hold: holdPart(cardText(step, constraints)),
     fast: fastPart(step, constraints.speed[step.index]),
     real: realPart(step, activity, (constraints.emphasis[step.index] ?? 0) > 0),
   };
@@ -57,16 +65,18 @@ function stepSegments(
   activity: ActivityTrack,
   constraints: Constraints,
 ): Segment[] {
-  const segments: Segment[] = [
-    {
+  const segments: Segment[] = [];
+  const text = cardText(step, constraints);
+  if (text !== undefined && hold.dur > 0) {
+    segments.push({
       id: `${step.index}-hold`,
       step: step.index,
       mode: "hold",
       srcT: step.promptT,
       outDur: hold.dur,
-      overlay: { kind: "prompt", text: step.prompt },
-    },
-  ];
+      overlay: { kind: "prompt", text },
+    });
+  }
   if (fast.dur > 0) {
     const src: [number, number] = [step.promptT, step.workEnd];
     segments.push({

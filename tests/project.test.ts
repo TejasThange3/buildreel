@@ -9,6 +9,8 @@ const constraints: Constraints = {
   emphasis: { 3: 4 },
   speed: { 1: 120 },
   titles: { 3: "Project files" },
+  prompts: { 1: "Add captions" },
+  hiddenPrompts: [2],
   intro: "Three features by voice",
 };
 const recording = { name: "2026-10-29 13-30-00.mp4", durationS: 1260.4 };

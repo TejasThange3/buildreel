@@ -10,6 +10,9 @@ const ConstraintsSchema = z.object({
   emphasis: z.record(z.string(), z.number().min(0).max(20)),
   speed: z.record(z.string(), z.number().min(1).max(2000)),
   titles: z.record(z.string(), z.string().max(48)),
+  // Files saved before prompts could be edited have neither field.
+  prompts: z.record(z.string(), z.string().min(1).max(2000)).default({}),
+  hiddenPrompts: z.array(z.int().min(1)).default([]),
   intro: z.string().max(60).optional(),
   outro: z.string().max(60).optional(),
 });

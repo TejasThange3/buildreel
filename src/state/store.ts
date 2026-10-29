@@ -68,6 +68,8 @@ const DEFAULT_CONSTRAINTS: Constraints = {
   emphasis: {},
   speed: {},
   titles: {},
+  prompts: {},
+  hiddenPrompts: [],
 };
 
 const EMPTY: Derived = { steps: [], droppedSteps: 0, edl: { segments: [], totalS: 0 } };

@@ -10,6 +10,8 @@ const base = (patch: Partial<Constraints> = {}): Constraints => ({
   emphasis: {},
   speed: {},
   titles: {},
+  prompts: {},
+  hiddenPrompts: [],
   ...patch,
 });
 
