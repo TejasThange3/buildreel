@@ -8,7 +8,7 @@ const REAL_MIN_ACTIVITY = 0.05;
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), hi);
 
-const wordCount = (text: string) => text.split(/\s+/).filter(Boolean).length;
+export const wordCount = (text: string) => text.split(/\s+/).filter(Boolean).length;
 
 // The prompt card stays up long enough to read: about 3.5 words a second, 2 to 5 seconds,
 // and fitting may shorten it to 2 seconds.
@@ -119,7 +119,7 @@ function withEmphasis(plan: StepPlan, constraints: Constraints): StepPlan {
 const INTRO_S = 2.5;
 const OUTRO_S = 3;
 
-function formatDuration(seconds: number): string {
+export function formatDuration(seconds: number): string {
   // Reels are usually 60 to 90 s, which read better as "90 s" than "2 min".
   if (seconds < 120) return `${Math.round(seconds)} s`;
   const minutes = Math.round(seconds / 60);
