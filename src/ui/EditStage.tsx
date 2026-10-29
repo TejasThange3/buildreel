@@ -2,6 +2,7 @@
 
 import { ExportPanel } from "./ExportPanel";
 import { Player } from "./Player";
+import { PostDraftPanel } from "./PostDraftPanel";
 import { SteerBox } from "./SteerBox";
 import { StepList } from "./StepList";
 import { TargetPicker } from "./TargetPicker";
@@ -27,6 +28,10 @@ export function EditStage() {
         <div className="border-t border-line pt-5">
           <h2 className="mb-3 text-sm font-medium">Export</h2>
           <ExportPanel />
+        </div>
+        <div className="border-t border-line pt-5">
+          <h2 className="mb-3 text-sm font-medium">Post draft</h2>
+          <PostDraftPanel />
         </div>
       </aside>
     </div>
