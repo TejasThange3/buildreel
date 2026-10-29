@@ -16,10 +16,11 @@ const constraints: Constraints = {
 const recording = { name: "2026-10-29 13-30-00.mp4", durationS: 1260.4 };
 
 describe("project file", () => {
-  const text = saveProject(recording, -2.5, constraints);
+  const autoTitles = { 1: "Caption export" };
+  const text = saveProject({ recording, offsetS: -2.5, constraints, autoTitles });
 
   it("opens what it saved for the same recording", () => {
-    expect(openProject(text, 1260.1)).toEqual({ ok: true, offsetS: -2.5, constraints });
+    expect(openProject(text, 1260.1)).toEqual({ ok: true, offsetS: -2.5, constraints, autoTitles });
   });
 
   it("refuses a different recording, naming the one it was saved for", () => {

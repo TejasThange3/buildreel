@@ -9,11 +9,17 @@ export function ProjectSave() {
   const recording = useProject((s) => s.recording);
   const offsetS = useProject((s) => s.offsetS);
   const constraints = useProject((s) => s.constraints);
+  const autoTitles = useProject((s) => s.autoTitles);
   if (!recording) return null;
 
   const save = () => {
     const { name } = recording.file;
-    const text = saveProject({ name, durationS: recording.probe.durationS }, offsetS, constraints);
+    const text = saveProject({
+      recording: { name, durationS: recording.probe.durationS },
+      offsetS,
+      constraints,
+      autoTitles,
+    });
     downloadText(text, "application/json", `${name.replace(/\.[^.]+$/, "")}-project.json`);
   };
 

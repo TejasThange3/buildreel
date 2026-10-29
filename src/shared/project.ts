@@ -2,7 +2,8 @@ import { z } from "zod";
 import type { Constraints } from "./types";
 
 // The recording and logs are too large and too private to store, so a project file keeps only
-// the user's decisions: the sync offset and the constraints. Opening it needs the same files again.
+// the user's decisions (the sync offset and the constraints) and the step titles the model wrote,
+// so reopening costs no model call. Opening it needs the same files again.
 const ConstraintsSchema = z.object({
   targetS: z.number().min(15).max(300),
   pinned: z.array(z.int().min(1)),
@@ -23,24 +24,23 @@ const ProjectFileSchema = z.object({
   recording: z.object({ name: z.string(), durationS: z.number().positive() }),
   offsetS: z.number(),
   constraints: ConstraintsSchema,
+  autoTitles: z.record(z.string(), z.string().max(48)).default({}),
 });
 
 type ProjectFile = z.infer<typeof ProjectFileSchema>;
+type Project = Omit<ProjectFile, "app" | "version">;
 
 // Durations from two probes of the same file agree to well under a second.
 const SAME_RECORDING_S = 1;
 
-export function saveProject(
-  recording: ProjectFile["recording"],
-  offsetS: number,
-  constraints: Constraints,
-): string {
-  const file: ProjectFile = { app: "buildreel", version: 1, recording, offsetS, constraints };
+export function saveProject(project: Project): string {
+  const file: ProjectFile = { app: "buildreel", version: 1, ...project };
   return JSON.stringify(file, null, 2);
 }
 
 type OpenedProject =
-  { ok: true; offsetS: number; constraints: Constraints } | { ok: false; message: string };
+  | { ok: true; offsetS: number; constraints: Constraints; autoTitles: Record<number, string> }
+  | { ok: false; message: string };
 
 export function openProject(text: string, durationS: number): OpenedProject {
   let json: unknown;
@@ -51,11 +51,11 @@ export function openProject(text: string, durationS: number): OpenedProject {
   }
   const parsed = ProjectFileSchema.safeParse(json);
   if (!parsed.success) return { ok: false, message: "That is not a Buildreel project file." };
-  const { recording, offsetS, constraints } = parsed.data;
+  const { recording, offsetS, constraints, autoTitles } = parsed.data;
   if (Math.abs(recording.durationS - durationS) > SAME_RECORDING_S)
     return {
       ok: false,
       message: `That project was saved for ${recording.name}. Drop that recording with it.`,
     };
-  return { ok: true, offsetS, constraints };
+  return { ok: true, offsetS, constraints, autoTitles };
 }
