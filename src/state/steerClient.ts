@@ -12,6 +12,12 @@ const RateLimited = z.object({ retryAfterS: z.number() });
 // in the reel now, and whether it is in the reel at all (dropped or cut for time). Prompts were
 // redacted when parsed; the instruction and title overrides are typed text, so they are redacted
 // here before anything leaves the browser.
+// A hidden prompt never leaves the browser; an edited one is sent as edited (already redacted).
+function promptExcerpt(step: Step, constraints: Constraints): string {
+  if (constraints.hiddenPrompts.includes(step.index)) return "";
+  return (constraints.prompts[step.index] ?? step.prompt).slice(0, 120);
+}
+
 export function steerRequest(
   instruction: string,
   steps: Step[],
@@ -27,7 +33,7 @@ export function steerRequest(
     steps: steps.map((step) => ({
       index: step.index,
       title: redact(constraints.titles[step.index] ?? step.title).slice(0, 80),
-      excerpt: step.prompt.slice(0, 120),
+      excerpt: promptExcerpt(step, constraints),
       outDur: seconds.get(step.index) ?? 0,
       kept: seconds.has(step.index),
     })),
