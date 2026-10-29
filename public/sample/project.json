@@ -3,7 +3,8 @@
   "version": 1,
   "recording": {
     "name": "buildreel-sample.mp4",
-    "durationS": 1023.93
+    "durationS": 1023.93,
+    "startedAt": 1793260248000
   },
   "offsetS": -0.8,
   "constraints": {

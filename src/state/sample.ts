@@ -8,21 +8,13 @@ const FILES = [
   { path: "/sample/project.json", name: "project.json", type: "application/json" },
 ];
 
-// OBS named the recording by local wall-clock time, which only means the right instant in the
-// recorder's timezone. Giving the file an mtime of start plus duration lets recordingStart fall
-// back to it, so the sample lines up in any visitor's timezone.
-const STARTED_AT = Date.parse("2026-10-29T07:50:48Z");
-const DURATION_MS = 1_023_933;
-
 export async function fetchSample(): Promise<File[]> {
   return Promise.all(
     FILES.map(async ({ path, name, type }) => {
       const response = await fetch(path);
       if (!response.ok) throw new Error(`The sample could not be loaded (${response.status}).`);
-      return new File([await response.blob()], name, {
-        type,
-        lastModified: STARTED_AT + DURATION_MS,
-      });
+      // project.json carries the recording's start time, so the sample lines up in any timezone.
+      return new File([await response.blob()], name, { type });
     }),
   );
 }

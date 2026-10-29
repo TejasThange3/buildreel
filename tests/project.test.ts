@@ -23,6 +23,17 @@ describe("project file", () => {
     expect(openProject(text, 1260.1)).toEqual({ ok: true, offsetS: -2.5, constraints, autoTitles });
   });
 
+  it("keeps the recording's start time, so reopening elsewhere keeps the sync", () => {
+    const pinned = saveProject({
+      recording: { ...recording, startedAt: 1_793_260_248_000 },
+      offsetS: -0.8,
+      constraints,
+      autoTitles,
+    });
+    expect(openProject(pinned, 1260.4)).toMatchObject({ ok: true, startedAt: 1_793_260_248_000 });
+    expect(openProject(text, 1260.4)).toMatchObject({ ok: true, startedAt: undefined });
+  });
+
   it("refuses a different recording, naming the one it was saved for", () => {
     const opened = openProject(text, 900);
     expect(opened.ok).toBe(false);

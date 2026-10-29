@@ -8,7 +8,7 @@ import { applyOps, describeOps } from "@/lib/plan/applyOps";
 import { planReel } from "@/lib/plan/autoPlan";
 import { alignEvents, offsetFor, syncPrompt } from "@/lib/timeline/align";
 import { buildSteps } from "@/lib/timeline/steps";
-import { openProject } from "@/shared/project";
+import { openProject, PROMPT_MAX } from "@/shared/project";
 import type {
   ActivityTrack,
   BuildEvent,
@@ -92,6 +92,21 @@ function derive({ recording, log, offsetS, constraints, autoTitles }: Inputs): D
     steps,
     droppedSteps: built.droppedSteps,
     edl: planReel(steps, activity, constraints, probe.durationS),
+  };
+}
+
+// A project file is user-supplied text like a log, and its text reaches captions and the model.
+const redactTexts = (titles: Record<number, string>) =>
+  Object.fromEntries(Object.entries(titles).map(([step, text]) => [step, redact(text)]));
+
+function redactConstraints(constraints: Constraints): Constraints {
+  const { intro, outro } = constraints;
+  return {
+    ...constraints,
+    titles: redactTexts(constraints.titles),
+    prompts: redactTexts(constraints.prompts),
+    intro: intro === undefined ? undefined : redact(intro),
+    outro: outro === undefined ? undefined : redact(outro),
   };
 }
 
@@ -185,8 +200,9 @@ export const useProject = create<ProjectState>()((set, get) => {
         const log = parseClaudeLogs(texts);
         const previous = get().recording;
         if (previous) URL.revokeObjectURL(previous.url);
-        const recording = { ...read, url: URL.createObjectURL(read.file) };
-        const { startedAt, durationS } = read.probe;
+        const probe = { ...read.probe, startedAt: opened?.startedAt ?? read.probe.startedAt };
+        const recording = { ...read, probe, url: URL.createObjectURL(read.file) };
+        const { startedAt, durationS } = probe;
         // A saved project was synced when it was saved, so it opens straight into editing.
         set({
           synced: opened !== undefined,
@@ -198,8 +214,8 @@ export const useProject = create<ProjectState>()((set, get) => {
           recording,
           log,
           offsetS: opened?.offsetS ?? 0,
-          constraints: opened?.constraints ?? DEFAULT_CONSTRAINTS,
-          autoTitles: opened?.autoTitles ?? {},
+          constraints: opened ? redactConstraints(opened.constraints) : DEFAULT_CONSTRAINTS,
+          autoTitles: opened ? redactTexts(opened.autoTitles) : {},
         });
         if (opened && Object.keys(opened.autoTitles).length === 0) void nameSteps();
       } catch (error) {
@@ -255,7 +271,7 @@ export const useProject = create<ProjectState>()((set, get) => {
     // box, or typing the original back, returns to the prompt from the log.
     editPrompt: (index, text) => {
       const { constraints, steps } = get();
-      const clean = redact(text.trim());
+      const clean = redact(text.trim()).slice(0, PROMPT_MAX);
       const prompts = { ...constraints.prompts };
       delete prompts[index];
       const original = steps.find((s) => s.index === index)?.prompt;

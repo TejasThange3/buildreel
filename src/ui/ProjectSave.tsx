@@ -15,7 +15,11 @@ export function ProjectSave() {
   const save = () => {
     const { name } = recording.file;
     const text = saveProject({
-      recording: { name, durationS: recording.probe.durationS },
+      recording: {
+        name,
+        durationS: recording.probe.durationS,
+        startedAt: recording.probe.startedAt,
+      },
       offsetS,
       constraints,
       autoTitles,
