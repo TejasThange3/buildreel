@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { postDraft } from "@/lib/render/postDraft";
-import type { Constraints, Step } from "@/shared/types";
+import { postDraft, xLength } from "@/lib/render/postDraft";
+import type { Constraints, EDL, Segment, Step } from "@/shared/types";
 
 const step = (index: number, prompt: string, title: string): Step => ({
   index,
@@ -12,6 +12,21 @@ const step = (index: number, prompt: string, title: string): Step => ({
   tools: [],
   reviewActivity: 0.5,
 });
+
+// A reel that shows the given steps, 10 s each, plus a zero-length leftover of step 99.
+const reel = (shown: number[]): EDL => {
+  const segments: Segment[] = [
+    ...shown.map((s): Segment => ({
+      id: `${s}-real`,
+      step: s,
+      mode: "real",
+      src: [0, 10],
+      outDur: 10,
+    })),
+    { id: "99-real", step: 99, mode: "real", src: [0, 0], outDur: 0 },
+  ];
+  return { segments, totalS: 88 };
+};
 
 const steps = [
   step(1, "Add SRT caption export next to the mp4 export", "SRT caption export"),
@@ -31,11 +46,17 @@ const constraints: Constraints = {
 };
 
 describe("postDraft", () => {
-  const draft = postDraft(steps, constraints, 1260, 88);
+  const draft = postDraft(steps, constraints, reel([1, 3]), 1260);
 
-  it("lists kept steps under the titles the reel shows", () => {
+  it("lists the steps in the reel under the titles the reel shows", () => {
     expect(draft.linkedin).toContain("1. SRT caption export\n2. Project files");
     expect(draft.linkedin).not.toContain("Post draft");
+  });
+
+  it("leaves out steps cut to fit the length, not only dropped ones", () => {
+    const cut = postDraft(steps, { ...constraints, dropped: [] }, reel([3]), 1260);
+    expect(cut.linkedin).toContain("1. Project files");
+    expect(cut.linkedin).not.toContain("SRT caption export");
   });
 
   it("counts every prompt and dictated word, as the outro card does", () => {
@@ -47,10 +68,20 @@ describe("postDraft", () => {
     const long = Array.from({ length: 12 }, (_, i) =>
       step(i + 1, "word", `A fairly long step title number ${i + 1}`),
     );
-    const x = postDraft(long, { ...constraints, dropped: [], titles: {} }, 1260, 88).x;
-    expect(x.length).toBeLessThanOrEqual(280);
+    const shown = long.map((s) => s.index);
+    const x = postDraft(long, { ...constraints, dropped: [], titles: {} }, reel(shown), 1260).x;
+    expect(xLength(x)).toBeLessThanOrEqual(280);
     expect(x).toContain("1. A fairly long step title number 1");
     expect(x).not.toContain("12. A fairly");
     expect(x.endsWith("Reel made with Buildreel.")).toBe(true);
+  });
+
+  it("weighs CJK titles double, as X does", () => {
+    expect(xLength("ab")).toBe(2);
+    expect(xLength("字幕")).toBe(4);
+    const cjk = [1, 2, 3].map((i) => step(i, "word", "字".repeat(40)));
+    const x = postDraft(cjk, { ...constraints, dropped: [], titles: {} }, reel([1, 2, 3]), 1260).x;
+    expect(xLength(x)).toBeLessThanOrEqual(280);
+    expect(x.length).toBeLessThan(280);
   });
 });
