@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { exportMp4, ExportUnsupportedError } from "@/lib/render/exportMp4";
 import { buildSrt } from "@/lib/render/srt";
 import { useProject } from "@/state/store";
+import { download, downloadText } from "./download";
 import { readFonts } from "./overlayFonts";
 
 type Status =
@@ -14,13 +15,6 @@ type Status =
   | { kind: "failed"; message: string };
 
 const HEIGHTS = [1080, 720];
-
-function download(url: string, name: string) {
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = name;
-  a.click();
-}
 
 export function ExportPanel() {
   const recording = useProject((s) => s.recording);
@@ -42,12 +36,8 @@ export function ExportPanel() {
   if (!recording) return null;
   const baseName = recording.file.name.replace(/\.[^.]+$/, "");
 
-  // A data URL needs no revoking, and captions are a few kilobytes at most.
   const downloadSrt = () =>
-    download(
-      `data:application/x-subrip;charset=utf-8,${encodeURIComponent(buildSrt(edl))}`,
-      `${baseName}-reel.srt`,
-    );
+    downloadText(buildSrt(edl), "application/x-subrip", `${baseName}-reel.srt`);
 
   const start = async () => {
     const controller = new AbortController();

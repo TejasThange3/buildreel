@@ -33,7 +33,8 @@ export function DropZone() {
         <FilmSlateIcon size={28} weight="light" className="mx-auto text-fg-muted" aria-hidden />
         <h1 className="mt-6 text-2xl font-semibold tracking-tight text-balance">Drop your build</h1>
         <p className="mx-auto mt-3 max-w-sm text-sm leading-relaxed text-pretty text-fg-muted">
-          One screen recording and its Claude Code session logs. Everything stays in your browser.
+          One screen recording and its Claude Code session logs, plus a saved project to pick up
+          where you left off. Everything stays in your browser.
         </p>
 
         <label className="mt-8 inline-flex h-10 cursor-pointer items-center rounded-full bg-fg px-5 text-sm font-medium text-canvas transition-transform duration-150 active:scale-[0.97] has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-3 has-[:focus-visible]:outline-fg">
@@ -41,7 +42,7 @@ export function DropZone() {
           <input
             type="file"
             multiple
-            accept="video/*,.mkv,.jsonl"
+            accept="video/*,.mkv,.jsonl,.json"
             disabled={importing}
             className="sr-only"
             onChange={(event) => void importFiles([...(event.target.files ?? [])])}
