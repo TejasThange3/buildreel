@@ -3,6 +3,7 @@
 import { DownloadSimpleIcon } from "@phosphor-icons/react";
 import { useEffect, useRef, useState } from "react";
 import { exportMp4, ExportUnsupportedError } from "@/lib/render/exportMp4";
+import { buildSrt } from "@/lib/render/srt";
 import { useProject } from "@/state/store";
 import { readFonts } from "./overlayFonts";
 
@@ -39,6 +40,14 @@ export function ExportPanel() {
   useEffect(() => () => abort.current?.abort(), []);
 
   if (!recording) return null;
+  const baseName = recording.file.name.replace(/\.[^.]+$/, "");
+
+  // A data URL needs no revoking, and captions are a few kilobytes at most.
+  const downloadSrt = () =>
+    download(
+      `data:application/x-subrip;charset=utf-8,${encodeURIComponent(buildSrt(edl))}`,
+      `${baseName}-reel.srt`,
+    );
 
   const start = async () => {
     const controller = new AbortController();
@@ -60,7 +69,7 @@ export function ExportPanel() {
         return;
       }
       const url = URL.createObjectURL(blob);
-      const name = `${recording.file.name.replace(/\.[^.]+$/, "")}-reel.mp4`;
+      const name = `${baseName}-reel.mp4`;
       setStatus({ kind: "done", url, name });
       download(url, name);
     } catch (error) {
@@ -113,14 +122,24 @@ export function ExportPanel() {
             Cancel
           </button>
         ) : (
-          <button
-            type="button"
-            onClick={start}
-            disabled={edl.segments.length === 0}
-            className="h-10 rounded-full bg-fg px-5 text-sm font-medium text-canvas transition-opacity disabled:opacity-40"
-          >
-            Export mp4
-          </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={downloadSrt}
+              disabled={edl.segments.length === 0}
+              className="h-10 rounded-full border border-line-strong px-4 text-sm font-medium transition-colors hover:bg-white/5 disabled:opacity-40"
+            >
+              SRT
+            </button>
+            <button
+              type="button"
+              onClick={start}
+              disabled={edl.segments.length === 0}
+              className="h-10 rounded-full bg-fg px-5 text-sm font-medium text-canvas transition-opacity disabled:opacity-40"
+            >
+              Export mp4
+            </button>
+          </div>
         )}
       </div>
 
