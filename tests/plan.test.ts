@@ -185,17 +185,16 @@ describe("prompt review", () => {
 });
 
 describe("dictated prompts", () => {
+  const spokenAt = (s: Step, from: number, to: number): Step => ({ ...s, dictation: [from, to] });
+
   it("keeps the card up for the whole clip and plays it under the card", () => {
-    const spoken = { ...step(1, 14, 2, 0.5), dictation: [-6.5, -0.3] as [number, number] };
+    const spoken = spokenAt(step(1, 14, 2, 0.5), -6.5, -0.3);
     const edl = planReel([spoken], busy, constraints({ targetS: 300 }), 100);
     expect(part(edl, "1-hold")).toMatchObject({ outDur: 6.2, voice: [-6.5, -0.3] });
   });
 
   it("never shortens a card below its clip to fit the length", () => {
-    const spoken = steps.map((s) => ({
-      ...s,
-      dictation: [s.promptT - 4.5, s.promptT] as [number, number],
-    }));
+    const spoken = steps.map((s) => spokenAt(s, s.promptT - 4.5, s.promptT));
     const edl = planReel(spoken, busy, constraints({ targetS: 30 }), 1200);
     for (const s of edl.segments.filter((s) => s.mode === "hold"))
       expect(s.outDur).toBeGreaterThanOrEqual(4.5);
