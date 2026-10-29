@@ -1,7 +1,10 @@
 {
   "app": "buildreel",
   "version": 1,
-  "recording": { "name": "buildreel-sample.mp4", "durationS": 1023.93 },
+  "recording": {
+    "name": "buildreel-sample.mp4",
+    "durationS": 1023.93
+  },
   "offsetS": -0.8,
   "constraints": {
     "targetS": 90,
@@ -12,5 +15,10 @@
     "titles": {},
     "prompts": {},
     "hiddenPrompts": []
+  },
+  "autoTitles": {
+    "1": "Post draft for X and LinkedIn",
+    "2": "Save and load project as JSON",
+    "3": "Prompt review panel"
   }
 }
