@@ -13,6 +13,8 @@ const constraints = (patch: Partial<Constraints> = {}): Constraints => ({
   emphasis: {},
   speed: {},
   titles: {},
+  prompts: {},
+  hiddenPrompts: [],
   ...patch,
 });
 
@@ -156,6 +158,29 @@ describe("planReel", () => {
     );
     expect(part(steered, "intro")?.overlay).toEqual({ kind: "title", text: "Buildreel" });
     expect(part(steered, "outro")?.overlay).toEqual({ kind: "stats", text: "Thanks" });
+  });
+});
+
+describe("prompt review", () => {
+  const one = [step(1, 14, 2, 0.5)];
+
+  it("shows the edited prompt, timed for its own length", () => {
+    const edl = planReel(
+      one,
+      busy,
+      constraints({ targetS: 300, prompts: { 1: "Add captions" } }),
+      100,
+    );
+    expect(part(edl, "1-hold")).toMatchObject({
+      outDur: 2,
+      overlay: { kind: "prompt", text: "Add captions" },
+    });
+  });
+
+  it("leaves out the card of a hidden prompt, and its time", () => {
+    const edl = planReel(one, busy, constraints({ targetS: 300, hiddenPrompts: [1] }), 100);
+    expect(edl.segments.map((s) => s.id)).toEqual(["intro", "1-fast", "1-real", "outro"]);
+    expect(edl.totalS).toBeCloseTo(2.5 + 3 + 40 + 3, 9);
   });
 });
 
