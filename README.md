@@ -14,7 +14,9 @@ Built for No Hands: The Wispr Challenge (WeMakeDevs x Wispr Flow).
 2. **Sync.** Buildreel reads the recording's start time from the OBS file name and lines the log up with the video. You confirm or nudge the first prompt once.
 3. **Edit.** Each prompt you dictated becomes a step: a prompt card, the agent's work fast-forwarded with a chip for each tool call, then the most active few seconds of you checking the result in real time. The plan fits a target length (30, 60 or 90 s) by step importance.
 4. **Steer by voice.** Hold your Wispr Flow key and say a change, such as "make it a minute and keep the part where export worked". A small model turns it into validated edit operations; undo and redo cover every change.
-5. **Export.** An mp4 rendered in your browser with the overlays burned in, background noise removed from your voice, plus SRT captions and a ready post for X and LinkedIn. Projects save to a small JSON file you can reopen later.
+5. **Export.** An mp4 rendered in your browser, 16:9 or vertical 9:16, with the overlays burned in, each prompt card playing the prompt as you dictated it, and background noise removed from your voice. Plus SRT captions and a ready post for X and LinkedIn. Projects save to a small JSON file you can reopen later.
+
+Keys in the editor: Space or K plays, the arrows move 5 s, Shift and an arrow jumps a step, Ctrl or Cmd Z undoes.
 
 ## Privacy
 

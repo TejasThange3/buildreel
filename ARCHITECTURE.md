@@ -406,6 +406,7 @@ buildreel/
     lib/audio/dictation.ts     ~60   voice activity per frame, last stretch of speech
     lib/audio/findDictation.ts ~60   decodes the audio before each prompt and finds the dictation
     lib/audio/streamCleaner.ts ~40   RNNoise on live blocks for the preview
+    lib/keys.ts                ~40   editor shortcuts and step jumps
     state/sample.ts            ~25   fetches the sample; project.json pins its start time in any timezone
     ui/DropZone.tsx  ui/SyncPanel.tsx  ui/Player.tsx  ui/Timeline.tsx
     ui/StepList.tsx  ui/SteerBox.tsx   ui/ExportPanel.tsx      each ~60-150
