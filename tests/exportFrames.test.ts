@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { FPS, frameCount, outputFrames } from "@/lib/render/frames";
-import { fadeEdges, realWindows } from "@/lib/render/reelAudio";
+import { fadeEdges, soundWindows } from "@/lib/render/reelAudio";
 import type { EDL, Segment } from "@/shared/types";
 
 // 1 s title card, 1 s prompt hold at 10 s, 2 s timelapse of 10..330 s (160x), 3 s real time at
@@ -47,9 +47,20 @@ describe("outputFrames", () => {
   });
 });
 
-describe("realWindows", () => {
+describe("soundWindows", () => {
   it("places each real-time segment at its output time", () => {
-    expect(realWindows(edl)).toEqual([{ src: [330, 333], outStart: 4 }]);
+    expect(soundWindows(edl)).toEqual([{ src: [330, 333], outStart: 4 }]);
+  });
+
+  it("plays a dictated prompt under its card", () => {
+    const spoken: Segment[] = [
+      { id: "1-hold", step: 1, mode: "hold", srcT: 40, voice: [33.9, 39.1], outDur: 5.2 },
+      { id: "1-real", step: 1, mode: "real", src: [90, 95], outDur: 5 },
+    ];
+    expect(soundWindows({ segments: spoken, totalS: 10.2 })).toEqual([
+      { src: [33.9, 39.1], outStart: 0 },
+      { src: [90, 95], outStart: 5.2 },
+    ]);
   });
 });
 

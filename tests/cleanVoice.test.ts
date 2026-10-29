@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cleanVoice, DENOISE_RATE, resample } from "@/lib/render/cleanVoice";
+import { cleanVoice, DENOISE_RATE, resample } from "@/lib/audio/cleanVoice";
 
 describe("resample", () => {
   it("keeps a ramp a ramp, and the length in proportion", () => {

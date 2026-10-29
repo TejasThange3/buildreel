@@ -11,12 +11,15 @@ const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), h
 export const wordCount = (text: string) => text.split(/\s+/).filter(Boolean).length;
 
 // The prompt card stays up long enough to read: about 3.5 words a second, 2 to 5 seconds,
-// and fitting may shorten it to 2 seconds. A hidden card takes no time: the frame under it is
-// the moment the prompt was sent, which says nothing without the text.
-function holdPart(prompt: string | undefined): Part {
+// and fitting may shorten it to 2 seconds. When the dictation was found it plays under the card,
+// so the card lasts the whole clip and fitting never cuts the voice short. A hidden card takes no
+// time: the frame under it is the moment the prompt was sent, which says nothing without the text.
+function holdPart(prompt: string | undefined, dictation: [number, number] | undefined): Part {
   if (prompt === undefined) return { dur: 0, min: 0, max: 0 };
-  const dur = clamp(wordCount(prompt) / 3.5, 2, 5);
-  return { dur, min: Math.min(dur, 2), max: dur };
+  const read = clamp(wordCount(prompt) / 3.5, 2, 5);
+  const spoken = dictation ? dictation[1] - dictation[0] : 0;
+  const dur = Math.max(read, spoken);
+  return { dur, min: Math.max(Math.min(read, 2), spoken), max: dur };
 }
 
 // The agent's work plays at about 20x, 1.5 to 3 seconds, never slower than real time; fitting
@@ -53,7 +56,7 @@ function cardText(step: Step, constraints: Constraints): string | undefined {
 function draftPlan(step: Step, activity: ActivityTrack, constraints: Constraints): StepPlan {
   return {
     step,
-    hold: holdPart(cardText(step, constraints)),
+    hold: holdPart(cardText(step, constraints), step.dictation),
     fast: fastPart(step, constraints.speed[step.index]),
     real: realPart(step, activity, (constraints.emphasis[step.index] ?? 0) > 0),
   };
@@ -72,6 +75,7 @@ function stepSegments(
       step: step.index,
       mode: "hold",
       srcT: step.promptT,
+      ...(step.dictation && { voice: step.dictation }),
       outDur: hold.dur,
       overlay: { kind: "prompt", text },
     });

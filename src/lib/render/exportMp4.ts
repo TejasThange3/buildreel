@@ -14,8 +14,9 @@ import { openVideo } from "@/lib/media/probe";
 import type { EDL } from "@/shared/types";
 import { drawOverlay, type OverlayFonts } from "./drawOverlay";
 import { FPS, outputFrames } from "./frames";
-import { cleanVoice } from "./cleanVoice";
-import { audioSamples, realWindows, renderReelAudio, type WindowFilter } from "./reelAudio";
+import { cleanVoice } from "@/lib/audio/cleanVoice";
+import { loadRnnoise } from "@/lib/audio/rnnoise";
+import { audioSamples, renderReelAudio, soundWindows, type WindowFilter } from "./reelAudio";
 
 // The browser cannot encode a format this export needs; the UI shows it as a capability message.
 export class ExportUnsupportedError extends Error {}
@@ -44,11 +45,9 @@ const yieldToPage = () =>
 
 const even = (n: number) => Math.max(2, Math.round(n / 2) * 2);
 
-// The model is a few megabytes, so it loads only for an export that asks for clean voice. Each
-// window gets a fresh state: noise heard before a cut says nothing about the next moment.
+// Each window gets a fresh state: noise heard before a cut says nothing about the next moment.
 async function voiceFilter(sampleRate: number): Promise<WindowFilter> {
-  const { Rnnoise } = await import("@shiguredo/rnnoise-wasm");
-  const rnnoise = await Rnnoise.load();
+  const rnnoise = await loadRnnoise();
   return (planes, start, end) => {
     const state = rnnoise.createDenoiseState();
     try {
@@ -62,7 +61,7 @@ async function voiceFilter(sampleRate: number): Promise<WindowFilter> {
 }
 
 // ARCHITECTURE.md 6.9: every output frame is remapped to its source moment, decoded in order,
-// drawn with the same overlay as the preview and encoded; sound comes only from real-time parts.
+// drawn with the same overlay as the preview and encoded; sound comes from real-time parts and dictated prompts.
 export async function exportMp4({
   file,
   edl,
@@ -110,7 +109,7 @@ export async function exportMp4({
         sampleRate: audio.sampleRate,
       }));
     // Dropping the sound silently would ship a reel without the reviewer's voice.
-    if (audio && !audioCodec && realWindows(edl).length > 0)
+    if (audio && !audioCodec && soundWindows(edl).length > 0)
       throw new ExportUnsupportedError(
         "This browser cannot encode audio. Export works in a recent Chrome or Edge.",
       );

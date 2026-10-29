@@ -32,6 +32,7 @@ export type Step = {
   reviewEnd: number;
   tools: { t: number; label: string }[];
   reviewActivity: number; // 0..1 mean activity during review
+  dictation?: [number, number]; // where the prompt was spoken, when the audio shows it
 };
 
 // Tool chips keep their source time so a renderer can show each one as the fast-forward passes it.
@@ -42,7 +43,7 @@ export type Overlay =
 // appears, because the planner simply leaves that footage out.
 export type Segment = { id: string; step?: number; outDur: number; overlay?: Overlay } & (
   | { mode: "card" }
-  | { mode: "hold"; srcT: number }
+  | { mode: "hold"; srcT: number; voice?: [number, number] } // voice: dictation played under the card
   | { mode: "real"; src: [number, number] }
   | { mode: "fast"; src: [number, number]; speed: number }
 );

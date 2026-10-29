@@ -1,6 +1,6 @@
 // RNNoise runs on 48 kHz audio in 480-sample frames scaled like 16-bit PCM.
 export const DENOISE_RATE = 48_000;
-const PCM_SCALE = 32_768;
+export const PCM_SCALE = 32_768;
 
 // Linear interpolation is plenty for speech headed to a noise model and back; no output sample
 // reads past the input.

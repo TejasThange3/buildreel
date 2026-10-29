@@ -1,16 +1,19 @@
 import { AudioSample, type AudioSampleSink } from "mediabunny";
 import type { EDL } from "@/shared/types";
 
-export type RealWindow = { src: [number, number]; outStart: number };
+export type SoundWindow = { src: [number, number]; outStart: number };
 
-// Only real-time segments carry sound: the reviewer's own voice and clicks. Prompt cards, title
-// cards and fast-forwards are silent, since sped-up audio is noise.
-export function realWindows(edl: EDL): RealWindow[] {
-  const windows: RealWindow[] = [];
+// Sound comes from two places: real-time segments, with the reviewer's voice and clicks, and
+// prompt cards, which play the prompt as it was dictated. Title cards and fast-forwards are
+// silent, since sped-up audio is noise.
+export function soundWindows(edl: EDL): SoundWindow[] {
+  const windows: SoundWindow[] = [];
   let at = 0;
   for (const segment of edl.segments) {
-    if (segment.mode === "real" && segment.outDur > 0)
+    if (segment.outDur > 0 && segment.mode === "real")
       windows.push({ src: segment.src, outStart: at });
+    if (segment.outDur > 0 && segment.mode === "hold" && segment.voice)
+      windows.push({ src: segment.voice, outStart: at });
     at += segment.outDur;
   }
   return windows;
@@ -31,7 +34,7 @@ export function fadeEdges(channel: Float32Array, start: number, end: number, sam
 // Rewrites planes[c][start, end) in place, such as removing background noise from a window.
 export type WindowFilter = (planes: Float32Array[], start: number, end: number) => void;
 
-// The reel's whole soundtrack as one plane per channel: silence, with each real-time window's
+// The reel's whole soundtrack as one plane per channel: silence, with each sound window's
 // source audio written at its output time, filtered, and faded at the cuts.
 export async function renderReelAudio(
   sink: AudioSampleSink,
@@ -43,7 +46,7 @@ export async function renderReelAudio(
 ): Promise<Float32Array[]> {
   const length = Math.ceil(edl.totalS * sampleRate);
   const planes = Array.from({ length: channels }, () => new Float32Array(length));
-  for (const { src, outStart } of realWindows(edl)) {
+  for (const { src, outStart } of soundWindows(edl)) {
     const start = Math.round(outStart * sampleRate);
     const end = Math.min(start + Math.round((src[1] - src[0]) * sampleRate), length);
     // Fades go where audio was actually written, which is shorter than the window when the
