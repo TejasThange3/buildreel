@@ -83,7 +83,7 @@ export function ExportPanel() {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div
           role="radiogroup"
           aria-label="Export resolution"
@@ -125,7 +125,7 @@ export function ExportPanel() {
               type="button"
               onClick={start}
               disabled={edl.segments.length === 0}
-              className="h-10 rounded-full bg-fg px-5 text-sm font-medium text-canvas transition-opacity disabled:opacity-40"
+              className="h-10 rounded-full bg-fg px-5 text-sm font-medium whitespace-nowrap text-canvas transition-opacity disabled:opacity-40"
             >
               Export mp4
             </button>
