@@ -39,13 +39,19 @@ const BARE_QUOTED = new RegExp(
   `(^[ \\t]*|[{,][ \\t]*)((?:token|secret)[ \\t]*:[ \\t]*)(?:${QUOTED})`,
   "gim",
 );
-// HTTP auth: the value of an Authorization header (with its colon, in any case), and any long
-// Bearer credential; prose like "authorization basic checks" or "Bearer tokens expire" survives.
+// HTTP auth: the value of an Authorization header (with its colon, in any case), and a Bearer
+// credential of 12 or more characters with a digit, or 16 or more without one; prose like
+// "authorization basic checks" or "Bearer tokens expire" survives.
 const AUTH_HEADER = /\b(authorization:\s*(?:bearer|basic)\s+)\S+/gi;
-const BEARER = /\b(bearer\s+)[A-Za-z0-9._~+/=-]{16,}/gi;
-// curl's user:password argument, quoted or not. The option and its separator are matched before
-// the argument, with no overlapping repetition, so long runs of "=" stay linear.
-const CURL_USER = new RegExp(`((?:^|\\s)(?:-u|--user)(?:=|[ \\t]+))(?:${QUOTED}|\\S+)`, "g");
+const BEARER =
+  /\b(bearer\s+)(?:(?=[A-Za-z0-9._~+/=-]*\d)[A-Za-z0-9._~+/=-]{12,}|[A-Za-z0-9._~+/=-]{16,})/gi;
+// curl's user:password argument, quoted or not, only within a curl command so other tools' -u
+// ("git push -u origin") survive. The option and its separator are matched before the argument,
+// with no overlapping repetition, so long runs of "=" stay linear.
+const CURL_USER = new RegExp(
+  `(\\bcurl\\b[^\\n]*?\\s(?:-u|--user)(?:=|[ \\t]+))(?:${QUOTED}|\\S+)`,
+  "g",
+);
 // Userinfo lives before the host only; "?" and "#" end the authority.
 const URL_CREDENTIALS = /\b([a-z][a-z0-9+.-]*:\/\/)[^\s/?#:@]+:[^\s/?#@]+@/gi;
 const KEY_SHAPES = [
