@@ -233,7 +233,8 @@ export function Player() {
     <div>
       <div className="relative aspect-video overflow-hidden rounded-[var(--radius-panel)] bg-canvas outline outline-1 -outline-offset-1 outline-line">
         <video ref={video} src={recording.url} playsInline preload="auto" className="size-full" />
-        <audio ref={voice} src={recording.url} preload="auto" />
+        {/* Only seeks for each clip; a second full download would compete with the video. */}
+        <audio ref={voice} src={recording.url} preload="metadata" />
         <canvas ref={canvas} className="pointer-events-none absolute inset-0 size-full" />
       </div>
       <div className="mt-3 flex items-center gap-3">
