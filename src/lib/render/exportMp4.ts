@@ -18,8 +18,7 @@ import { cleanVoice } from "@/lib/audio/cleanVoice";
 import { loadRnnoise } from "@/lib/audio/rnnoise";
 import { audioSamples, renderReelAudio, soundWindows, type WindowFilter } from "./reelAudio";
 
-// The browser cannot encode a format this export needs; the UI shows it as a capability message.
-export class ExportUnsupportedError extends Error {}
+import { ExportUnsupportedError } from "./exportUnsupported";
 
 export type ExportOptions = {
   source: VideoSource;

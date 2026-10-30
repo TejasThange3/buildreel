@@ -2,7 +2,7 @@
 
 import { DownloadSimpleIcon } from "@phosphor-icons/react";
 import { useEffect, useRef, useState } from "react";
-import { exportMp4, ExportUnsupportedError } from "@/lib/render/exportMp4";
+import { ExportUnsupportedError } from "@/lib/render/exportUnsupported";
 import { buildSrt } from "@/lib/render/srt";
 import { useProject } from "@/state/store";
 import { download, downloadText } from "./download";
@@ -53,6 +53,8 @@ export function ExportPanel() {
     abort.current = controller;
     setStatus({ kind: "running", progress: 0 });
     try {
+      // The encoder loads on the first export, so opening the editor does not pay for it.
+      const { exportMp4 } = await import("@/lib/render/exportMp4");
       const blob = await exportMp4({
         source: recording.source,
         edl,
