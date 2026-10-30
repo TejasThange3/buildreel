@@ -65,6 +65,22 @@ function steerVideo(
   return pending;
 }
 
+function notReady(media: HTMLMediaElement): boolean {
+  return media.error === null && (media.seeking || media.readyState < media.HAVE_FUTURE_DATA);
+}
+
+// Real time needs the video playing; a dictated card needs its clip. A media error never blocks.
+function waitingForMedia(
+  { segment, local }: Remapped,
+  video: HTMLVideoElement,
+  voice: HTMLAudioElement,
+) {
+  if (segment.mode === "real") return notReady(video);
+  if (segment.mode === "hold" && segment.voice && segment.voice[0] + local < segment.voice[1])
+    return notReady(voice);
+  return false;
+}
+
 // A prompt card holds one frame while its dictation plays from a second element, since the
 // video cannot show one moment and sound another.
 function steerVoice(voice: HTMLAudioElement, r: Remapped, entered: boolean, playing: boolean) {
@@ -176,7 +192,10 @@ export function Player() {
     const tick = (now: number) => {
       const { outT, playing, seekId, advance, setPlaying } = usePlayback.getState();
       let t = outT;
-      if (playing) {
+      // Streamed media can lag the clock; the reel holds still until the frame or clip it needs is
+      // playable, so a slow connection never skips past a moment before it is seen or heard.
+      const at = remap(edl, outT);
+      if (playing && !(at && waitingForMedia(at, v, a))) {
         t = Math.min(outT + (now - last) / 1000, edl.totalS);
         if (t >= edl.totalS) setPlaying(false);
         advance(t);
