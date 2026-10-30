@@ -1,4 +1,4 @@
-export type Shortcut = "play" | "back" | "forward" | "previousStep" | "nextStep" | "undo" | "redo";
+type Shortcut = "play" | "back" | "forward" | "previousStep" | "nextStep" | "undo" | "redo";
 
 type Keypress = {
   key: string;

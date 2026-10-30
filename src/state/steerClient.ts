@@ -3,7 +3,7 @@ import { redact } from "@/lib/log/redact";
 import { type PatchOp, type SteerRequest, SteerResponseSchema } from "@/shared/steer";
 import type { Constraints, EDL, Step } from "@/shared/types";
 
-export type SteerReply =
+type SteerReply =
   { ok: true; ops: PatchOp[]; note: string | null } | { ok: false; message: string };
 
 const RateLimited = z.object({ retryAfterS: z.number() });

@@ -1,7 +1,7 @@
 import { AudioSample, type AudioSampleSink } from "mediabunny";
 import type { EDL } from "@/shared/types";
 
-export type SoundWindow = { src: [number, number]; outStart: number };
+type SoundWindow = { src: [number, number]; outStart: number };
 
 // Sound comes from two places: real-time segments, with the reviewer's voice and clicks, and
 // prompt cards, which play the prompt as it was dictated. Title cards and fast-forwards are

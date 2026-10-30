@@ -1,4 +1,4 @@
-export type SortedFiles = { videos: File[]; logs: File[]; projects: File[] };
+type SortedFiles = { videos: File[]; logs: File[]; projects: File[] };
 
 const extension = (file: File) => file.name.toLowerCase().split(".").pop() ?? "";
 

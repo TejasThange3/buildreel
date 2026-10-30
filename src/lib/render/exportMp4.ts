@@ -16,11 +16,10 @@ import { drawOverlay, type OverlayFonts } from "./drawOverlay";
 import { FPS, outputFrames } from "./frames";
 import { cleanVoice } from "@/lib/audio/cleanVoice";
 import { loadRnnoise } from "@/lib/audio/rnnoise";
+import { ExportUnsupportedError } from "./exportUnsupported";
 import { audioSamples, renderReelAudio, soundWindows, type WindowFilter } from "./reelAudio";
 
-import { ExportUnsupportedError } from "./exportUnsupported";
-
-export type ExportOptions = {
+type ExportOptions = {
   source: VideoSource;
   edl: EDL;
   keyTimes: number[];

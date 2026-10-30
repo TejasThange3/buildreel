@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const TITLE_MAX = 48;
+const TITLE_MAX = 48;
 
 export const TitlesRequestSchema = z
   .strictObject({

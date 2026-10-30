@@ -26,7 +26,7 @@ const limiters = redis && {
   }),
 };
 
-export type RateLimitResult =
+type RateLimitResult =
   { status: "ok" } | { status: "limited"; retryAfterS: number } | { status: "unavailable" };
 
 // Without Upstash configured (local development) there is no limit.

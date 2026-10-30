@@ -1,7 +1,7 @@
 import type { PatchOp } from "@/shared/steer";
 import type { Constraints } from "@/shared/types";
 
-export type ApplyResult = { constraints: Constraints; applied: PatchOp[]; skipped: PatchOp[] };
+type ApplyResult = { constraints: Constraints; applied: PatchOp[]; skipped: PatchOp[] };
 
 const withKey = (record: Record<number, number>, key: number, value: number) => {
   const next = { ...record };

@@ -1,4 +1,4 @@
-export type Measure = (text: string) => number;
+type Measure = (text: string) => number;
 
 // A token wider than the line (a path, a URL, an identifier) is split into the longest pieces
 // that fit, by code point, so it never runs past the panel.

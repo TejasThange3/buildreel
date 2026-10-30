@@ -25,7 +25,7 @@ import { fetchSample, SAMPLE_NAME, SAMPLE_VIDEO, type SampleAnalysis } from "./s
 import { requestTitles, titlesRequest } from "./titlesClient";
 
 // url is what the player streams: an object URL for a dropped file, the sample's own path.
-export type Recording = {
+type Recording = {
   source: VideoSource;
   name: string;
   url: string;

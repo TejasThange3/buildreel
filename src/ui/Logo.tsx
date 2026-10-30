@@ -1,6 +1,6 @@
 // The mark is a cut B: the coral bar is the dictated prompt, the two pills are reel segments.
 // app/icon.svg draws the same shapes for the browser tab.
-export function LogoMark({ className }: { className?: string }) {
+function LogoMark({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 64 64" aria-hidden className={className}>
       <rect x="1" y="1" width="62" height="62" rx="16" fill="#18181c" stroke="#3a3a42" />

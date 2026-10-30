@@ -57,7 +57,7 @@ function check(
   return { ok: true, value: parsed.data };
 }
 
-export type SteerResult = { ok: true; value: SteerResponse } | { ok: false; detail: string };
+type SteerResult = { ok: true; value: SteerResponse } | { ok: false; detail: string };
 
 // One call, and one retry that shows the model its own answer and what was wrong with it.
 export async function planSteer(request: SteerRequest): Promise<SteerResult> {

@@ -11,7 +11,7 @@ export function frameCount(edl: EDL): number {
 
 // srcT is the exact source time (overlays use it, as in the preview); frameT is the frame to
 // decode, which differs only in a timelapse.
-export type OutputFrame = Remapped & { frameT?: number; outT: number; index: number };
+type OutputFrame = Remapped & { frameT?: number; outT: number; index: number };
 
 // Every output frame of the reel in order, with the source moment it shows. Fast-forwards above
 // the timelapse rate snap to the keyframe at or before their source time, exactly as the preview
