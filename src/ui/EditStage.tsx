@@ -31,7 +31,7 @@ function Section({ title, hint, action, children }: SectionProps) {
 
 // One line on what the reel is, so the editor reads before anyone has to learn its parts.
 function Intro() {
-  const isSample = useProject((s) => s.recording?.file.name === SAMPLE_NAME);
+  const isSample = useProject((s) => s.recording?.name === SAMPLE_NAME);
   const rawS = useProject((s) => s.recording?.probe.durationS ?? 0);
   const reelS = useProject((s) => s.edl.totalS);
   const prompts = useProject((s) => s.steps.length);

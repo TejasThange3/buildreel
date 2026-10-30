@@ -10,7 +10,7 @@ import {
   Output,
   QUALITY_HIGH,
 } from "mediabunny";
-import { openVideo } from "@/lib/media/probe";
+import { openVideo, type VideoSource } from "@/lib/media/probe";
 import type { EDL } from "@/shared/types";
 import { drawOverlay, type OverlayFonts } from "./drawOverlay";
 import { FPS, outputFrames } from "./frames";
@@ -22,7 +22,7 @@ import { audioSamples, renderReelAudio, soundWindows, type WindowFilter } from "
 export class ExportUnsupportedError extends Error {}
 
 export type ExportOptions = {
-  file: File;
+  source: VideoSource;
   edl: EDL;
   keyTimes: number[];
   fonts: OverlayFonts;
@@ -66,7 +66,7 @@ async function voiceFilter(sampleRate: number): Promise<WindowFilter> {
 // ARCHITECTURE.md 6.9: every output frame is remapped to its source moment, decoded in order,
 // drawn with the same overlay as the preview and encoded; sound comes from real-time parts and dictated prompts.
 export async function exportMp4({
-  file,
+  source,
   edl,
   keyTimes,
   fonts,
@@ -76,10 +76,10 @@ export async function exportMp4({
   onProgress,
   signal,
 }: ExportOptions): Promise<Blob> {
-  const input = openVideo(file);
+  const input = openVideo(source);
   try {
     const video = await input.getPrimaryVideoTrack();
-    if (!video) throw new Error(`${file.name} has no video track.`);
+    if (!video) throw new Error("The recording has no video track.");
     const short = even(Math.min(maxHeight, video.displayHeight));
     const width = vertical ? short : even((short * video.displayWidth) / video.displayHeight);
     const height = vertical ? even((short * 16) / 9) : short;

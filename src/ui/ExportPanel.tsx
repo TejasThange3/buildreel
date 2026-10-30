@@ -43,7 +43,7 @@ export function ExportPanel() {
   useEffect(() => () => abort.current?.abort(), []);
 
   if (!recording) return null;
-  const baseName = recording.file.name.replace(/\.[^.]+$/, "");
+  const baseName = recording.name.replace(/\.[^.]+$/, "");
 
   const downloadSrt = () =>
     downloadText(buildSrt(edl), "application/x-subrip", `${baseName}-reel.srt`);
@@ -54,7 +54,7 @@ export function ExportPanel() {
     setStatus({ kind: "running", progress: 0 });
     try {
       const blob = await exportMp4({
-        file: recording.file,
+        source: recording.source,
         edl,
         keyTimes: recording.keyTimes,
         fonts: readFonts(),

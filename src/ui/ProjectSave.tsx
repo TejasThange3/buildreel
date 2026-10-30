@@ -13,7 +13,7 @@ export function ProjectSave() {
   if (!recording) return null;
 
   const save = () => {
-    const { name } = recording.file;
+    const { name } = recording;
     const text = saveProject({
       recording: {
         name,

@@ -1,6 +1,6 @@
 import { CanvasSink } from "mediabunny";
 import type { PacketSize } from "./activity";
-import { openVideo } from "./probe";
+import { openVideo, type VideoSource } from "./probe";
 
 // A keyframe decodes on its own, so a fast-forward too fast to play (OBS writes one every
 // ~8.3 s; a 26 min turn in 3 s is 532x) is drawn from consecutive keyframes: a timelapse.
@@ -36,10 +36,10 @@ export type KeyframeReader = {
 // hopping without holding a whole recording in memory.
 const CACHE_SIZE = 24;
 
-export async function openKeyframes(file: File, width: number): Promise<KeyframeReader> {
-  const input = openVideo(file);
+export async function openKeyframes(source: VideoSource, width: number): Promise<KeyframeReader> {
+  const input = openVideo(source);
   const track = await input.getPrimaryVideoTrack();
-  if (!track) throw new Error(`${file.name} has no video track.`);
+  if (!track) throw new Error("The recording has no video track.");
   const sink = new CanvasSink(track, { width });
   const cache = new Map<number, HTMLCanvasElement | OffscreenCanvas>();
   return {

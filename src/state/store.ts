@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { parseClaudeLogs } from "@/lib/log/parseClaudeLog";
 import { activityTrack, readPacketSizes } from "@/lib/media/activity";
 import { keyframeTimes } from "@/lib/media/keyframes";
-import { probeVideo } from "@/lib/media/probe";
+import { probeVideo, type VideoSource } from "@/lib/media/probe";
 import { redact } from "@/lib/log/redact";
 import { applyOps, describeOps } from "@/lib/plan/applyOps";
 import { planReel } from "@/lib/plan/autoPlan";
@@ -20,10 +20,13 @@ import type {
   VideoProbe,
 } from "@/shared/types";
 import { requestSteer, steerRequest } from "./steerClient";
+import { fetchSampleTexts, SAMPLE_NAME, SAMPLE_VIDEO } from "./sample";
 import { requestTitles, titlesRequest } from "./titlesClient";
 
+// url is what the player streams: an object URL for a dropped file, the sample's own path.
 export type Recording = {
-  file: File;
+  source: VideoSource;
+  name: string;
   url: string;
   probe: VideoProbe;
   activity: ActivityTrack;
@@ -54,6 +57,10 @@ type ProjectState = Inputs &
     importing: boolean;
     importError?: string;
     importFiles: (files: File[]) => Promise<void>;
+    openSample: () => Promise<void>;
+    // True from page load until the sample has opened or failed, so a first visit never flashes
+    // the drop zone; a reset turns it off for good.
+    openingSample: boolean;
     markPromptAt: (videoT: number) => void;
     confirmSync: () => void;
     reset: () => void;
@@ -123,17 +130,32 @@ function redactConstraints(constraints: Constraints): Constraints {
 const isLog = (file: File) => file.name.toLowerCase().endsWith(".jsonl");
 const isProject = (file: File) => file.name.toLowerCase().endsWith(".json");
 
-// The object URL is created by the caller only once the whole import has succeeded.
-async function readRecording(file: File): Promise<Omit<Recording, "url">> {
-  const probe = await probeVideo(file);
-  const packets = await readPacketSizes(file);
+// One import: the recording, the log texts and an optional saved project.
+type Import = {
+  source: VideoSource;
+  file: { name: string; lastModified: number };
+  logs: Promise<string[]>;
+  project?: Promise<string>;
+};
+
+async function readRecording({ source, file }: Import): Promise<Omit<Recording, "url">> {
+  const probe = await probeVideo(source, file);
+  const packets = await readPacketSizes(source);
   return {
-    file,
+    source,
+    name: file.name,
     probe,
     activity: activityTrack(packets, probe.durationS),
     keyTimes: keyframeTimes(packets),
   };
 }
+
+const streamUrl = (source: VideoSource) =>
+  source instanceof File ? URL.createObjectURL(source) : source.href;
+
+const release = (recording: Recording | undefined) => {
+  if (recording?.source instanceof File) URL.revokeObjectURL(recording.url);
+};
 
 export const useProject = create<ProjectState>()((set, get) => {
   // Each import gets a number; a reset or a newer import makes older results stale, and stale
@@ -166,7 +188,7 @@ export const useProject = create<ProjectState>()((set, get) => {
     const asked = generation;
     const { recording, steps } = get();
     if (!recording) return;
-    const found = await findDictation(recording.file, steps).catch((error: unknown) => {
+    const found = await findDictation(recording.source, steps).catch((error: unknown) => {
       reportError(error);
       return undefined;
     });
@@ -178,6 +200,55 @@ export const useProject = create<ProjectState>()((set, get) => {
   const finishSteps = (named: boolean) => {
     if (!named) void nameSteps();
     void listenForPrompts();
+  };
+
+  // Reads a recording and its logs into a fresh project. A newer import or a reset makes this
+  // one stale, and a stale result never touches the project.
+  const load = async (job: Import) => {
+    if (get().importing) return;
+    const current = ++generation;
+    set({ importing: true, importError: undefined });
+    try {
+      const [read, texts, projectText] = await Promise.all([
+        readRecording(job),
+        job.logs,
+        job.project,
+      ]);
+      if (current !== generation) return;
+      const opened =
+        projectText === undefined ? undefined : openProject(projectText, read.probe.durationS);
+      if (opened && !opened.ok) {
+        set({ importError: opened.message });
+        return;
+      }
+      const log = parseClaudeLogs(texts);
+      release(get().recording);
+      const probe = { ...read.probe, startedAt: opened?.startedAt ?? read.probe.startedAt };
+      const recording = { ...read, probe, url: streamUrl(read.source) };
+      const { startedAt, durationS } = probe;
+      // A saved project was synced when it was saved, so it opens straight into editing.
+      set({
+        synced: opened !== undefined,
+        syncTarget: syncPrompt(log.events, startedAt, durationS),
+        past: [],
+        future: [],
+      });
+      update({
+        recording,
+        log,
+        offsetS: opened?.offsetS ?? 0,
+        constraints: opened ? redactConstraints(opened.constraints) : DEFAULT_CONSTRAINTS,
+        autoTitles: opened ? redactTexts(opened.autoTitles) : {},
+        dictation: {},
+      });
+      if (opened) finishSteps(Object.keys(opened.autoTitles).length > 0);
+    } catch (error) {
+      if (current === generation) {
+        set({ importError: error instanceof Error ? error.message : String(error) });
+      }
+    } finally {
+      if (current === generation) set({ importing: false });
+    }
   };
 
   // A change that changes nothing keeps the redo stack intact.
@@ -214,50 +285,29 @@ export const useProject = create<ProjectState>()((set, get) => {
         });
         return;
       }
+      await load({
+        source: video,
+        file: video,
+        logs: Promise.all(logs.map((f) => f.text())),
+        project: project?.text(),
+      });
+    },
+
+    openingSample: true,
+    openSample: async () => {
+      // React runs effects twice in development; the second call finds the first one importing.
       if (get().importing) return;
-      const current = ++generation;
-      set({ importing: true, importError: undefined });
+      const texts = fetchSampleTexts();
       try {
-        const [read, texts, projectText] = await Promise.all([
-          readRecording(video),
-          Promise.all(logs.map((f) => f.text())),
-          project?.text(),
-        ]);
-        if (current !== generation) return;
-        const opened =
-          projectText === undefined ? undefined : openProject(projectText, read.probe.durationS);
-        if (opened && !opened.ok) {
-          set({ importError: opened.message });
-          return;
-        }
-        const log = parseClaudeLogs(texts);
-        const previous = get().recording;
-        if (previous) URL.revokeObjectURL(previous.url);
-        const probe = { ...read.probe, startedAt: opened?.startedAt ?? read.probe.startedAt };
-        const recording = { ...read, probe, url: URL.createObjectURL(read.file) };
-        const { startedAt, durationS } = probe;
-        // A saved project was synced when it was saved, so it opens straight into editing.
-        set({
-          synced: opened !== undefined,
-          syncTarget: syncPrompt(log.events, startedAt, durationS),
-          past: [],
-          future: [],
+        await load({
+          source: new URL(SAMPLE_VIDEO, window.location.href),
+          // The sample's project pins its start time, so no real mtime is needed.
+          file: { name: SAMPLE_NAME, lastModified: Date.now() },
+          logs: texts.then(({ log }) => [log]),
+          project: texts.then(({ project }) => project),
         });
-        update({
-          recording,
-          log,
-          offsetS: opened?.offsetS ?? 0,
-          constraints: opened ? redactConstraints(opened.constraints) : DEFAULT_CONSTRAINTS,
-          autoTitles: opened ? redactTexts(opened.autoTitles) : {},
-          dictation: {},
-        });
-        if (opened) finishSteps(Object.keys(opened.autoTitles).length > 0);
-      } catch (error) {
-        if (current === generation) {
-          set({ importError: error instanceof Error ? error.message : String(error) });
-        }
       } finally {
-        if (current === generation) set({ importing: false });
+        set({ openingSample: false });
       }
     },
 
@@ -276,10 +326,10 @@ export const useProject = create<ProjectState>()((set, get) => {
     reset: () => {
       generation++;
       revision++;
-      const { recording } = get();
-      if (recording) URL.revokeObjectURL(recording.url);
+      release(get().recording);
       set({
         recording: undefined,
+        openingSample: false,
         log: undefined,
         syncTarget: undefined,
         synced: false,

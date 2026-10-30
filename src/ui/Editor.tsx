@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { fetchSample } from "@/state/sample";
+import { useEffect } from "react";
 import { useProject } from "@/state/store";
 import { DropZone } from "./DropZone";
 import { EditStage } from "./EditStage";
@@ -33,29 +32,14 @@ function StagePath({ current }: { current: number }) {
 export default function Editor() {
   const hasProject = useProject((s) => s.recording !== undefined);
   const synced = useProject((s) => s.synced);
-  const importFiles = useProject((s) => s.importFiles);
+  const openingSample = useProject((s) => s.openingSample);
+  const openSample = useProject((s) => s.openSample);
   const reset = useProject((s) => s.reset);
-  const [loadingSample, setLoadingSample] = useState(!hasProject);
 
   // A first visit opens the sample build, so there is a reel to play before anyone has files.
   useEffect(() => {
-    if (useProject.getState().recording) return;
-    let cancelled = false;
-    fetchSample()
-      .then((files) => (cancelled ? undefined : importFiles(files)))
-      .catch((error: unknown) =>
-        useProject.setState({
-          importError: error instanceof Error ? error.message : String(error),
-        }),
-      )
-      // A cancelled run (React mounts effects twice in development) leaves the flag to the next.
-      .finally(() => {
-        if (!cancelled) setLoadingSample(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [importFiles]);
+    if (!useProject.getState().recording) void openSample();
+  }, [openSample]);
 
   return (
     <div className="flex min-h-[100dvh] flex-col">
@@ -75,7 +59,7 @@ export default function Editor() {
         )}
       </header>
       <main className="flex flex-1 flex-col">
-        {loadingSample && !hasProject ? (
+        {openingSample && !hasProject ? (
           <p
             role="status"
             className="flex flex-1 items-center justify-center text-sm text-fg-muted"

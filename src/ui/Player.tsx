@@ -104,7 +104,7 @@ export function Player() {
     if (!recording) return;
     let open = true;
     keyframesFailed.current = false;
-    openKeyframes(recording.file, KEYFRAME_WIDTH).then(
+    openKeyframes(recording.source, KEYFRAME_WIDTH).then(
       (reader) => {
         if (open) keyframes.current = reader;
         else reader.dispose();

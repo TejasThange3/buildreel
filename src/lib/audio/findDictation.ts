@@ -1,5 +1,5 @@
 import { AudioSampleSink } from "mediabunny";
-import { openVideo } from "@/lib/media/probe";
+import { openVideo, type VideoSource } from "@/lib/media/probe";
 import type { Step } from "@/shared/types";
 import { DENOISE_RATE, resample } from "./cleanVoice";
 import { lastSpeech, voiceActivity } from "./dictation";
@@ -32,10 +32,10 @@ async function readMono(sink: AudioSampleSink, from: number, to: number, rate: n
 
 // Where each prompt was dictated, as source seconds; steps with no clear speech are left out.
 export async function findDictation(
-  file: File,
+  source: VideoSource,
   steps: Step[],
 ): Promise<Record<number, [number, number]>> {
-  const input = openVideo(file);
+  const input = openVideo(source);
   try {
     const track = await input.getPrimaryAudioTrack();
     if (!track || !(await track.canDecode())) return {};

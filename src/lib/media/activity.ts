@@ -1,6 +1,6 @@
 import { EncodedPacketSink } from "mediabunny";
 import { ACTIVITY_BIN_S, type ActivityTrack } from "@/shared/types";
-import { openVideo } from "./probe";
+import { openVideo, type VideoSource } from "./probe";
 
 export type PacketSize = { timestamp: number; byteLength: number; type: "key" | "delta" };
 
@@ -29,11 +29,11 @@ export function activityTrack(packets: PacketSize[], durationS: number): Activit
 }
 
 // Metadata only: no decoding, so a 16 min 1080p recording scans in about 0.1 s.
-export async function readPacketSizes(file: File): Promise<PacketSize[]> {
-  const input = openVideo(file);
+export async function readPacketSizes(source: VideoSource): Promise<PacketSize[]> {
+  const input = openVideo(source);
   try {
     const track = await input.getPrimaryVideoTrack();
-    if (!track) throw new Error(`${file.name} has no video track.`);
+    if (!track) throw new Error("The recording has no video track.");
     const sizes: PacketSize[] = [];
     const packets = new EncodedPacketSink(track).packets(undefined, undefined, {
       metadataOnly: true,
