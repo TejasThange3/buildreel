@@ -8,6 +8,7 @@ import { applyOps, describeOps } from "@/lib/plan/applyOps";
 import { planReel } from "@/lib/plan/autoPlan";
 import { alignEvents, offsetFor, syncPrompt } from "@/lib/timeline/align";
 import { findDictation } from "@/lib/audio/findDictation";
+import { sortFiles } from "@/lib/files";
 import { buildSteps } from "@/lib/timeline/steps";
 import { openProject, PROMPT_MAX } from "@/shared/project";
 import type {
@@ -126,9 +127,6 @@ function redactConstraints(constraints: Constraints): Constraints {
     outro: outro === undefined ? undefined : redact(outro),
   };
 }
-
-const isLog = (file: File) => file.name.toLowerCase().endsWith(".jsonl");
-const isProject = (file: File) => file.name.toLowerCase().endsWith(".json");
 
 // One import: the recording, the log texts and an optional saved project.
 type Import = {
@@ -273,9 +271,7 @@ export const useProject = create<ProjectState>()((set, get) => {
     future: [],
 
     importFiles: async (files) => {
-      const logs = files.filter(isLog);
-      const projects = files.filter(isProject);
-      const videos = files.filter((f) => !isLog(f) && !isProject(f));
+      const { videos, logs, projects } = sortFiles(files);
       const [video] = videos;
       const [project] = projects;
       if (!video || videos.length > 1 || logs.length === 0 || projects.length > 1) {
