@@ -16,6 +16,7 @@ const LOG_HOW = MAC
 type SlotProps = {
   step: number;
   title: string;
+  pick: string;
   icon: ReactNode;
   chosen: string[];
   accept: string;
@@ -24,7 +25,7 @@ type SlotProps = {
   children: ReactNode;
 };
 
-function Slot({ step, title, icon, chosen, accept, multiple, onPick, children }: SlotProps) {
+function Slot({ step, title, pick, icon, chosen, accept, multiple, onPick, children }: SlotProps) {
   const done = chosen.length > 0;
   return (
     <div
@@ -54,6 +55,7 @@ function Slot({ step, title, icon, chosen, accept, multiple, onPick, children }:
           type="file"
           accept={accept}
           multiple={multiple}
+          aria-label={pick}
           className="sr-only"
           onChange={(event) => onPick([...(event.target.files ?? [])])}
         />
@@ -144,6 +146,7 @@ export function DropZone() {
         <Slot
           step={1}
           title="Your screen recording"
+          pick="Choose your screen recording"
           icon={<FilmSlateIcon className="size-5" />}
           chosen={video ? [video.name] : []}
           accept="video/*,.mkv"
@@ -154,6 +157,7 @@ export function DropZone() {
         <Slot
           step={2}
           title="Your Claude Code log"
+          pick="Choose your Claude Code log"
           icon={<FileTextIcon className="size-5" />}
           chosen={logs.map((f) => f.name)}
           accept=".jsonl"
@@ -168,7 +172,7 @@ export function DropZone() {
         </Slot>
       </div>
 
-      <label className="mt-4 flex cursor-pointer items-center gap-2 self-start text-sm text-fg-muted transition-colors hover:text-fg">
+      <label className="mt-4 flex cursor-pointer items-center gap-2 self-start text-sm text-fg-muted transition-colors hover:text-fg has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-fg">
         <input
           type="file"
           accept=".json"

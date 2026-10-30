@@ -235,7 +235,12 @@ export function Player() {
         <video ref={video} src={recording.url} playsInline preload="auto" className="size-full" />
         {/* Only seeks for each clip; a second full download would compete with the video. */}
         <audio ref={voice} src={recording.url} preload="metadata" />
-        <canvas ref={canvas} className="pointer-events-none absolute inset-0 size-full" />
+        {/* The overlays repeat what the step list and prompt cards already say in text. */}
+        <canvas
+          ref={canvas}
+          aria-hidden
+          className="pointer-events-none absolute inset-0 size-full"
+        />
       </div>
       <div className="mt-3 flex items-center gap-3">
         <button

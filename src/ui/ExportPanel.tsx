@@ -126,6 +126,7 @@ export function ExportPanel() {
             <button
               type="button"
               onClick={downloadSrt}
+              aria-label="Download SRT captions"
               disabled={edl.segments.length === 0}
               className="h-10 rounded-full border border-line-strong px-4 text-sm font-medium transition-colors hover:bg-white/5 disabled:opacity-40"
             >
