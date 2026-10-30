@@ -1,6 +1,13 @@
 import { LlmBusyError, LlmUnavailableError } from "@/server/llm";
 import { checkRateLimit } from "@/server/rateLimit";
-import { clientIp, rateLimited, unavailable } from "@/server/responses";
+import {
+  clientIp,
+  invalidRequest,
+  rateLimited,
+  readJson,
+  tooLarge,
+  unavailable,
+} from "@/server/responses";
 import { planTitles } from "@/server/titles";
 import { TitlesRequestSchema } from "@/shared/titles";
 
@@ -10,8 +17,10 @@ export async function POST(request: Request) {
   if (limit.status === "limited") return rateLimited(limit.retryAfterS);
   if (limit.status === "unavailable") return unavailable();
 
-  const body = TitlesRequestSchema.safeParse(await request.json().catch(() => undefined));
-  if (!body.success) return Response.json({ error: "invalid request" }, { status: 400 });
+  const read = await readJson(request);
+  if (!read.ok) return read.tooLarge ? tooLarge() : invalidRequest();
+  const body = TitlesRequestSchema.safeParse(read.json);
+  if (!body.success) return invalidRequest();
 
   try {
     const titles = await planTitles(body.data);
