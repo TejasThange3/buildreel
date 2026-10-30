@@ -40,6 +40,11 @@ describe("redact", () => {
       "curl -u 'admin:my pass' https://x.io",
       "curl -u [redacted] https://x.io",
     ],
+    [
+      "two curl users",
+      "curl -u alice:first --user bob:second x",
+      "curl -u [redacted] --user [redacted] x",
+    ],
     ["short bearer with a digit", "Bearer abcDEF123xyz67", "Bearer [redacted]"],
     ["alphabetic bearer", "use Bearer abcdefghijklmnop", "use Bearer [redacted]"],
     ["lowercase bearer", "bearer abcDEF123xyz6789", "bearer [redacted]"],
@@ -94,6 +99,7 @@ describe("redact", () => {
   it.each([
     "Basic implementation of the parser",
     "then git push -u origin main",
+    "curl --version && git push -u origin main",
     "We need authorization basic checks before release",
     "if (token==expected) return",
     "Bearer tokens are short-lived",

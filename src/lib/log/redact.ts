@@ -45,13 +45,12 @@ const BARE_QUOTED = new RegExp(
 const AUTH_HEADER = /\b(authorization:\s*(?:bearer|basic)\s+)\S+/gi;
 const BEARER =
   /\b(bearer\s+)(?:(?=[A-Za-z0-9._~+/=-]*\d)[A-Za-z0-9._~+/=-]{12,}|[A-Za-z0-9._~+/=-]{16,})/gi;
-// curl's user:password argument, quoted or not, only within a curl command so other tools' -u
-// ("git push -u origin") survive. The option and its separator are matched before the argument,
-// with no overlapping repetition, so long runs of "=" stay linear.
-const CURL_USER = new RegExp(
-  `(\\bcurl\\b[^\\n]*?\\s(?:-u|--user)(?:=|[ \\t]+))(?:${QUOTED}|\\S+)`,
-  "g",
-);
+// curl's user:password arguments, quoted or not. A curl command runs to the next "&&", ";", "|"
+// or line end, and only its own -u and --user are redacted, so "git push -u origin" survives.
+// Both patterns match in one linear pass: commands do not overlap, and the option and its
+// separator come before the argument with no repetition shared between them.
+const CURL_COMMAND = /\bcurl\b[^\n;&|]*/g;
+const USER_OPTION = new RegExp(`(\\s(?:-u|--user)(?:=|[ \\t]+))(?:${QUOTED}|[^\\s;&|]+)`, "g");
 // Userinfo lives before the host only; "?" and "#" end the authority.
 const URL_CREDENTIALS = /\b([a-z][a-z0-9+.-]*:\/\/)[^\s/?#:@]+:[^\s/?#@]+@/gi;
 const KEY_SHAPES = [
@@ -109,7 +108,7 @@ export function redact(text: string): string {
     })
     .replace(AUTH_HEADER, `$1${REDACTED}`)
     .replace(BEARER, `$1${REDACTED}`)
-    .replace(CURL_USER, `$1${REDACTED}`)
+    .replace(CURL_COMMAND, (command: string) => command.replace(USER_OPTION, `$1${REDACTED}`))
     .replace(URL_CREDENTIALS, `$1${REDACTED}@`);
   for (const shape of KEY_SHAPES) out = out.replace(shape, REDACTED);
   return out
