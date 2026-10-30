@@ -36,7 +36,7 @@ export type Step = {
 };
 
 // Tool chips keep their source time so a renderer can show each one as the fast-forward passes it.
-export type Overlay =
+type Overlay =
   { kind: "prompt" | "title" | "stats"; text: string } | { kind: "tools"; tools: Step["tools"] };
 
 // One stretch of the output reel. Source times are seconds on the video timeline; a "cut" never
