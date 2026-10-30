@@ -21,7 +21,7 @@ import type {
   VideoProbe,
 } from "@/shared/types";
 import { requestSteer, steerRequest } from "./steerClient";
-import { fetchSampleTexts, SAMPLE_NAME, SAMPLE_VIDEO } from "./sample";
+import { fetchSample, SAMPLE_NAME, SAMPLE_VIDEO, type SampleAnalysis } from "./sample";
 import { requestTitles, titlesRequest } from "./titlesClient";
 
 // url is what the player streams: an object URL for a dropped file, the sample's own path.
@@ -134,9 +134,23 @@ type Import = {
   file: { name: string; lastModified: number };
   logs: Promise<string[]>;
   project?: Promise<string>;
+  // Shipped with the sample, so it opens without reading its video.
+  analysis?: Promise<SampleAnalysis>;
 };
 
-async function readRecording({ source, file }: Import): Promise<Omit<Recording, "url">> {
+async function readRecording({ source, file, analysis }: Import): Promise<Omit<Recording, "url">> {
+  const known = await analysis;
+  if (known) {
+    const { durationS, width, height, activity, keyTimes } = known;
+    const startedAt = file.lastModified - durationS * 1000;
+    return {
+      source,
+      name: file.name,
+      probe: { durationS, width, height, startedAt },
+      activity,
+      keyTimes,
+    };
+  }
   const probe = await probeVideo(source, file);
   const packets = await readPacketSizes(source);
   return {
@@ -195,9 +209,9 @@ export const useProject = create<ProjectState>()((set, get) => {
 
   // Once steps are final (after sync, or straight away for a saved project) they are named and
   // their dictation is found.
-  const finishSteps = (named: boolean) => {
+  const finishSteps = (named: boolean, heard: boolean) => {
     if (!named) void nameSteps();
-    void listenForPrompts();
+    if (!heard) void listenForPrompts();
   };
 
   // Reads a recording and its logs into a fresh project. A newer import or a reset makes this
@@ -207,10 +221,11 @@ export const useProject = create<ProjectState>()((set, get) => {
     const current = ++generation;
     set({ importing: true, importError: undefined });
     try {
-      const [read, texts, projectText] = await Promise.all([
+      const [read, texts, projectText, analysis] = await Promise.all([
         readRecording(job),
         job.logs,
         job.project,
+        job.analysis,
       ]);
       if (current !== generation) return;
       const opened =
@@ -237,9 +252,9 @@ export const useProject = create<ProjectState>()((set, get) => {
         offsetS: opened?.offsetS ?? 0,
         constraints: opened ? redactConstraints(opened.constraints) : DEFAULT_CONSTRAINTS,
         autoTitles: opened ? redactTexts(opened.autoTitles) : {},
-        dictation: {},
+        dictation: analysis?.dictation ?? {},
       });
-      if (opened) finishSteps(Object.keys(opened.autoTitles).length > 0);
+      if (opened) finishSteps(Object.keys(opened.autoTitles).length > 0, analysis !== undefined);
     } catch (error) {
       if (current === generation) {
         set({ importError: error instanceof Error ? error.message : String(error) });
@@ -293,14 +308,15 @@ export const useProject = create<ProjectState>()((set, get) => {
     openSample: async () => {
       // React runs effects twice in development; the second call finds the first one importing.
       if (get().importing) return;
-      const texts = fetchSampleTexts();
+      const sample = fetchSample();
       try {
         await load({
           source: new URL(SAMPLE_VIDEO, window.location.href),
           // The sample's project pins its start time, so no real mtime is needed.
           file: { name: SAMPLE_NAME, lastModified: Date.now() },
-          logs: texts.then(({ log }) => [log]),
-          project: texts.then(({ project }) => project),
+          logs: sample.then(({ log }) => [log]),
+          project: sample.then(({ project }) => project),
+          analysis: sample.then(({ analysis }) => analysis),
         });
       } finally {
         set({ openingSample: false });
@@ -316,7 +332,7 @@ export const useProject = create<ProjectState>()((set, get) => {
     },
     confirmSync: () => {
       set({ synced: true });
-      finishSteps(false);
+      finishSteps(false, false);
     },
 
     reset: () => {
