@@ -14,6 +14,7 @@
 
 <p align="center">
   <a href="https://buildreel.vercel.app/editor"><img alt="Try the live demo" src="https://img.shields.io/badge/Live%20demo-buildreel.vercel.app-ff7a59?style=for-the-badge&labelColor=18181c"></a>
+  <a href="https://youtu.be/3c68zmFoClM"><img alt="Watch the demo video" src="https://img.shields.io/badge/Watch%20the%20demo-2%20min-ff0000?style=for-the-badge&logo=youtube&logoColor=white&labelColor=18181c"></a>
   <a href="https://buildreel.vercel.app/guide"><img alt="Read the guide" src="https://img.shields.io/badge/Guide-4%20steps-ededef?style=for-the-badge&labelColor=18181c"></a>
 </p>
 
@@ -24,6 +25,7 @@
   <img alt="Export with WebCodecs" src="https://img.shields.io/badge/Export-WebCodecs-555555">
   <img alt="Video stays in your browser" src="https://img.shields.io/badge/Video%20stays-in%20your%20browser-2ea44f">
   <img alt="Built for No Hands: The Wispr Challenge" src="https://img.shields.io/badge/Built%20for-No%20Hands%3A%20The%20Wispr%20Challenge-ff7a59">
+  <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/License-MIT-blue"></a>
 </p>
 
 <p align="center">
@@ -44,6 +46,16 @@
 </p>
 
 ---
+
+## Demo video
+
+<p align="center">
+  <a href="https://youtu.be/3c68zmFoClM">
+    <img alt="Watch the two minute Buildreel demo on YouTube" src="https://i.ytimg.com/vi/3c68zmFoClM/maxresdefault.jpg" width="760">
+  </a>
+  <br>
+  <sub>Two minutes: the problem, the sample build, steering by voice, private prompts, export and the guide. <a href="https://youtu.be/3c68zmFoClM">Watch on YouTube</a></sub>
+</p>
 
 ## Why
 
@@ -169,5 +181,9 @@ npm run typecheck   # tsc, strict
 npm run lint        # ESLint
 npm run build       # production build
 ```
+
+## License
+
+[MIT](LICENSE) © 2026 Tejas Thange
 
 <p align="center"><sub>Buildreel. Hours of building, cut to ninety seconds.</sub></p>
