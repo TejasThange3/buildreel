@@ -22,6 +22,7 @@ import { useShortcuts } from "./useShortcuts";
 // Real-time playback re-seeks only when it drifts this far, so seeks do not stutter it.
 const DRIFT_S = 0.25;
 const KEYFRAME_WIDTH = 1280;
+const MAX_WAIT_MS = 4000;
 
 // play() rejects with AbortError when a cut pauses or seeks the video before it starts; that is
 // expected at every segment boundary. Anything else is a real failure.
@@ -65,8 +66,10 @@ function steerVideo(
   return pending;
 }
 
-function notReady(media: HTMLMediaElement): boolean {
-  return media.error === null && (media.seeking || media.readyState < media.HAVE_FUTURE_DATA);
+// A finished, failed or too-short element never holds the reel.
+function notReady(media: HTMLMediaElement, t: number): boolean {
+  if (media.error !== null || media.ended || t >= media.duration) return false;
+  return media.seeking || media.readyState < media.HAVE_FUTURE_DATA;
 }
 
 // Real time needs the video playing; a dictated card needs its clip. A media error never blocks.
@@ -75,9 +78,10 @@ function waitingForMedia(
   video: HTMLVideoElement,
   voice: HTMLAudioElement,
 ) {
-  if (segment.mode === "real") return notReady(video);
-  if (segment.mode === "hold" && segment.voice && segment.voice[0] + local < segment.voice[1])
-    return notReady(voice);
+  if (segment.mode === "real") return notReady(video, segment.src[0] + local);
+  const t = segment.mode === "hold" && segment.voice ? segment.voice[0] + local : undefined;
+  if (segment.mode === "hold" && segment.voice && t !== undefined && t < segment.voice[1])
+    return notReady(voice, t);
   return false;
 }
 
@@ -152,6 +156,7 @@ export function Player() {
     let last = performance.now();
     let lastSeekId = usePlayback.getState().seekId;
     let pendingSeek = false;
+    let waitingSince: number | undefined;
     let frame = 0;
     // Timelapse state: the keyframe on screen and whether a decode is in flight. A new decode
     // starts only when the last one lands, so the hop rate follows the device's decoder. Each
@@ -196,7 +201,10 @@ export function Player() {
       // Streamed media can lag the clock; the reel holds still until the frame or clip it needs is
       // playable, so a slow connection never skips past a moment before it is seen or heard.
       const at = remap(edl, outT);
-      if (playing && !(at && waitingForMedia(at, v, a))) {
+      const waiting = playing && at !== undefined && waitingForMedia(at, v, a);
+      waitingSince = waiting ? (waitingSince ?? now) : undefined;
+      // A stall that outlasts this lets the reel move on rather than freeze.
+      if (playing && !(waiting && now - (waitingSince ?? now) < MAX_WAIT_MS)) {
         t = Math.min(outT + (now - last) / 1000, edl.totalS);
         if (t >= edl.totalS) setPlaying(false);
         advance(t);
