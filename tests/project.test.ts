@@ -16,7 +16,7 @@ const constraints: Constraints = {
 const recording = { name: "2026-10-29 13-30-00.mp4", durationS: 1260.4 };
 
 describe("project file", () => {
-  const autoTitles = { 1: "Caption export" };
+  const autoTitles = { 3: "Caption export" };
   const text = saveProject({ recording, offsetS: -2.5, constraints, autoTitles });
 
   it("opens what it saved for the same recording", () => {
@@ -32,6 +32,16 @@ describe("project file", () => {
     });
     expect(openProject(pinned, 1260.4)).toMatchObject({ ok: true, startedAt: 1_793_260_248_000 });
     expect(openProject(text, 1260.4)).toMatchObject({ ok: true, startedAt: undefined });
+  });
+
+  it("leaves out model titles of edited and hidden prompts", () => {
+    const titled = saveProject({
+      recording,
+      offsetS: 0,
+      constraints,
+      autoTitles: { 1: "Old wording", 2: "Hidden wording", 3: "Kept" },
+    });
+    expect(openProject(titled, 1260.4)).toMatchObject({ autoTitles: { 3: "Kept" } });
   });
 
   it("refuses a different recording, naming the one it was saved for", () => {

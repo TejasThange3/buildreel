@@ -41,8 +41,16 @@ type Project = Omit<ProjectFile, "app" | "version">;
 // Durations from two probes of the same file agree to well under a second.
 const SAME_RECORDING_S = 1;
 
+// Titles the model wrote from a prompt that was later edited or hidden would carry the old
+// wording into the file, so they are left out.
 export function saveProject(project: Project): string {
-  const file: ProjectFile = { app: "buildreel", version: 1, ...project };
+  const { prompts, hiddenPrompts } = project.constraints;
+  const autoTitles = Object.fromEntries(
+    Object.entries(project.autoTitles).filter(
+      ([step]) => !(step in prompts) && !hiddenPrompts.includes(Number(step)),
+    ),
+  );
+  const file: ProjectFile = { app: "buildreel", version: 1, ...project, autoTitles };
   return JSON.stringify(file, null, 2);
 }
 
