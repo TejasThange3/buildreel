@@ -48,7 +48,7 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Open http://localhost:3000. Steering and step titles need `LLM_API_KEY` in `.env.local`; any OpenAI-compatible endpoint works, and the example uses Groq's free tier. Rate limits use Upstash Redis; without its variables the routes still run locally. Everything else works with no keys at all.
+Open http://localhost:3000. Steering and step titles need `LLM_API_KEY` in `.env.local`; any OpenAI-compatible endpoint works, and the example uses Groq's free tier. Rate limits use Upstash Redis: without its variables the routes run unlimited under `npm run dev`, and a production build refuses model calls rather than spend without a cap. Everything else works with no keys at all.
 
 ```bash
 npm test          # Vitest, pure functions with fixtures from real sessions

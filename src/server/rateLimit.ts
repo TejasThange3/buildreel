@@ -29,9 +29,10 @@ const limiters = redis && {
 type RateLimitResult =
   { status: "ok" } | { status: "limited"; retryAfterS: number } | { status: "unavailable" };
 
-// Without Upstash configured (local development) there is no limit.
+// Without Upstash there is no limit in development; a production build without it refuses model
+// calls rather than spend without a cap.
 export async function checkRateLimit(ip: string): Promise<RateLimitResult> {
-  if (!limiters) return { status: "ok" };
+  if (!limiters) return { status: process.env.NODE_ENV === "production" ? "unavailable" : "ok" };
   for (const [limiter, key] of [
     [limiters.ip, ip],
     [limiters.day, "all"],
