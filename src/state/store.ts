@@ -8,7 +8,7 @@ import { applyOps, describeOps } from "@/lib/plan/applyOps";
 import { planReel } from "@/lib/plan/autoPlan";
 import { alignEvents, offsetFor, syncPrompt } from "@/lib/timeline/align";
 import { findDictation } from "@/lib/audio/findDictation";
-import { sortFiles } from "@/lib/files";
+import { sizeProblem, sortFiles } from "@/lib/files";
 import { buildSteps, shownTitle } from "@/lib/timeline/steps";
 import { openProject, PROMPT_MAX } from "@/shared/project";
 import type {
@@ -20,6 +20,7 @@ import type {
   Step,
   VideoProbe,
 } from "@/shared/types";
+import { usePlayback } from "./playback";
 import { requestSteer, steerRequest } from "./steerClient";
 import { fetchSample, SAMPLE_NAME, SAMPLE_VIDEO, type SampleAnalysis } from "./sample";
 import { requestTitles, titlesRequest } from "./titlesClient";
@@ -169,8 +170,13 @@ async function readRecording({ source, file, analysis }: Import): Promise<Omit<R
 const streamUrl = (source: VideoSource) =>
   source instanceof File ? URL.createObjectURL(source) : source.href;
 
+// A project that goes away takes its object URL and its playhead with it, so the next one starts
+// paused at the beginning.
 const release = (recording: Recording | undefined) => {
   if (recording?.source instanceof File) URL.revokeObjectURL(recording.url);
+  const { seek, setPlaying } = usePlayback.getState();
+  setPlaying(false);
+  seek(0);
 };
 
 export const useProject = create<ProjectState>()((set, get) => {
@@ -280,7 +286,8 @@ export const useProject = create<ProjectState>()((set, get) => {
     future: [],
 
     importFiles: async (files) => {
-      const { videos, logs, projects } = sortFiles(files);
+      const sorted = sortFiles(files);
+      const { videos, logs, projects } = sorted;
       const [video] = videos;
       const [project] = projects;
       if (!video || videos.length > 1 || logs.length === 0 || projects.length > 1) {
@@ -288,6 +295,11 @@ export const useProject = create<ProjectState>()((set, get) => {
           importError:
             "Drop one screen recording and at least one Claude Code .jsonl log, plus a saved project if you have one.",
         });
+        return;
+      }
+      const tooBig = sizeProblem(sorted);
+      if (tooBig) {
+        set({ importError: tooBig });
         return;
       }
       await load({

@@ -14,3 +14,20 @@ export function sortFiles(files: File[]): SortedFiles {
   }
   return sorted;
 }
+
+// Logs and projects are read whole and parsed on the page, so their size is capped before any of
+// it is read. Long real sessions run to about 20 MB of log.
+const MB = 1024 * 1024;
+const MAX_LOG = 100 * MB;
+const MAX_LOGS = 300 * MB;
+const MAX_PROJECT = MB;
+
+export function sizeProblem({ logs, projects }: SortedFiles): string | undefined {
+  const big = logs.find((f) => f.size > MAX_LOG);
+  if (big) return `${big.name} is over 100 MB. Pick the log of this session only.`;
+  if (logs.reduce((sum, f) => sum + f.size, 0) > MAX_LOGS)
+    return "These logs add up to over 300 MB. Pick only the ones from this session.";
+  const project = projects.find((f) => f.size > MAX_PROJECT);
+  if (project) return `${project.name} is too large to be a Buildreel project file.`;
+  return undefined;
+}
