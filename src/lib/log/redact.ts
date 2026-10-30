@@ -1,4 +1,4 @@
-const REDACTED = "[redacted]";
+export const REDACTED = "[redacted]";
 
 // .env style is KEY=value with no spaces; prose like "NOTE = remember" or "A == b" is not.
 // The variable name is kept so the caption still says what was set.
@@ -22,6 +22,17 @@ const SECRET_QUOTED = new RegExp(
   "gi",
 );
 const SECRET_FIELD = new RegExp(`\\b(${SECRET_NAME}${ASSIGN})[^\\s"',;]{6,}`, "gi");
+// A password is secret at any length, so "password=1234" goes too.
+const PASSWORD_FIELD = new RegExp(
+  `\\b([A-Za-z0-9_-]*(?:passw(?:or)?d|pwd)${ASSIGN})[^\\s"',;]+`,
+  "gi",
+);
+// A bare token or secret set with no spaces, as on a command line or in a query string
+// ("token=abc", "?secret=xyz"); code with spaces ("const token = id") is left alone.
+const BARE_ASSIGNMENT = /\b((?:token|secret)=)[^\s"',;&]+/gi;
+// HTTP auth headers and curl's user:password argument.
+const AUTH_HEADER = /\b((?:Bearer|Basic)\s+)[A-Za-z0-9._~+/=-]{8,}/g;
+const CURL_USER = /((?:^|\s)(?:-u|--user)[ =]+[^\s:]+:)\S+/g;
 // Userinfo lives before the host only; "?" and "#" end the authority.
 const URL_CREDENTIALS = /\b([a-z][a-z0-9+.-]*:\/\/)[^\s/?#:@]+:[^\s/?#@]+@/gi;
 const KEY_SHAPES = [
@@ -71,6 +82,10 @@ export function redact(text: string): string {
       return `${name}${quote}${REDACTED}${quote}`;
     })
     .replace(SECRET_FIELD, `$1${REDACTED}`)
+    .replace(PASSWORD_FIELD, `$1${REDACTED}`)
+    .replace(BARE_ASSIGNMENT, `$1${REDACTED}`)
+    .replace(AUTH_HEADER, `$1${REDACTED}`)
+    .replace(CURL_USER, `$1${REDACTED}`)
     .replace(URL_CREDENTIALS, `$1${REDACTED}@`);
   for (const shape of KEY_SHAPES) out = out.replace(shape, REDACTED);
   return out
