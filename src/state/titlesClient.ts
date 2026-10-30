@@ -5,18 +5,21 @@ import type { Constraints, Step } from "@/shared/types";
 // Titles cost a model call per import, so each prompt is cut well under the 600-character cap.
 const PROMPT_CHARS = 300;
 
-// Steps the user titled are left alone, and a hidden prompt never leaves the browser. Prompts
-// were redacted when parsed and edits when typed.
-export function titlesRequest(steps: Step[], constraints: Constraints): TitlesRequest | undefined {
-  const wanted = steps.flatMap((step) =>
-    step.index in constraints.titles || constraints.hiddenPrompts.includes(step.index)
+// Only steps still named by their first sentence are sent: not ones the user or the model titled,
+// not edited ones (named from the edit), and never a hidden prompt. Prompts were redacted when
+// parsed.
+export function titlesRequest(
+  steps: Step[],
+  constraints: Constraints,
+  autoTitles: Record<number, string>,
+): TitlesRequest | undefined {
+  const wanted = steps.flatMap(({ index, prompt }) =>
+    index in constraints.titles ||
+    index in constraints.prompts ||
+    index in autoTitles ||
+    constraints.hiddenPrompts.includes(index)
       ? []
-      : [
-          {
-            index: step.index,
-            prompt: (constraints.prompts[step.index] ?? step.prompt).slice(0, PROMPT_CHARS),
-          },
-        ],
+      : [{ index, prompt: prompt.slice(0, PROMPT_CHARS) }],
   );
   return wanted.length > 0 && wanted.length <= 80 ? { steps: wanted } : undefined;
 }

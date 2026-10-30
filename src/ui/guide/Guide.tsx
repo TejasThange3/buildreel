@@ -54,7 +54,7 @@ const STEPS: Step[] = [
     lead: "Buildreel plans the reel straight away. Press play: each step is one prompt, shown as your prompt card with your voice, the agent's work fast-forwarded, then you checking the result.",
     points: [
       "Reel length picks 30, 60 or 90 seconds. The steps share the time by how much happened in each.",
-      "Steps lists one row per prompt. Click a row to jump to it; switch it off to cut that step, and the others get its time.",
+      "Steps lists one row per prompt. Click a row to jump to it; switch it off to cut that step, and the others get its time. Name steps asks the AI for short titles from your prompts; review the prompt cards first if any hold something private.",
       'Steer by voice takes a sentence. Click the box, hold your Wispr Flow key and say a change, such as "make it a minute" or "give step 2 more time", then press Enter. Undo sits next to it.',
       "Prompt cards let you fix a word in any prompt, or hide a card, which also hides its voice.",
       "Export renders the mp4 in your browser, 16:9 or 9:16 for Shorts and Reels, with background noise taken out of your voice. SRT downloads the captions for YouTube or LinkedIn, and the post draft gives you text for X and LinkedIn to copy.",

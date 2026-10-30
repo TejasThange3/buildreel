@@ -73,6 +73,10 @@ type ProjectState = Inputs &
     editPrompt: (index: number, text: string) => void;
     togglePrompt: (index: number) => void;
     steer: (instruction: string) => Promise<SteerOutcome>;
+    // Naming sends short prompt excerpts to the model, so it waits for the user to ask: by then
+    // they have seen the prompt cards and hidden or edited anything private.
+    naming: "idle" | "pending" | "failed";
+    nameSteps: () => Promise<void>;
     undo: () => void;
     redo: () => void;
     // Shared by the preview and the export, so what plays is what gets rendered.
@@ -184,16 +188,6 @@ export const useProject = create<ProjectState>()((set, get) => {
     set({ ...patch, ...derive(next) });
   };
 
-  // Steps are named once they are final, after sync. Titles arriving for an older import are
-  // dropped; titles the user typed meanwhile still win, as they always do.
-  const nameSteps = async () => {
-    const asked = generation;
-    const request = titlesRequest(get().steps, get().constraints);
-    if (!request) return;
-    const titles = await requestTitles(request);
-    if (titles && asked === generation) update({ autoTitles: titles });
-  };
-
   // Hearing the prompt is a bonus: a recording with no microphone or no clear speech keeps silent
   // cards, so a failure is reported and the reel stays as it is.
   const listenForPrompts = async () => {
@@ -207,10 +201,9 @@ export const useProject = create<ProjectState>()((set, get) => {
     if (found && asked === generation) update({ dictation: found });
   };
 
-  // Once steps are final (after sync, or straight away for a saved project) they are named and
-  // their dictation is found.
-  const finishSteps = (named: boolean, heard: boolean) => {
-    if (!named) void nameSteps();
+  // Once steps are final (after sync, or straight away for a saved project) their dictation is
+  // found, unless the project already knows it.
+  const finishSteps = (heard: boolean) => {
     if (!heard) void listenForPrompts();
   };
 
@@ -241,6 +234,7 @@ export const useProject = create<ProjectState>()((set, get) => {
       const { startedAt, durationS } = probe;
       // A saved project was synced when it was saved, so it opens straight into editing.
       set({
+        naming: "idle",
         synced: opened !== undefined,
         syncTarget: syncPrompt(log.events, startedAt, durationS),
         past: [],
@@ -254,7 +248,7 @@ export const useProject = create<ProjectState>()((set, get) => {
         autoTitles: opened ? redactTexts(opened.autoTitles) : {},
         dictation: analysis?.dictation ?? {},
       });
-      if (opened) finishSteps(Object.keys(opened.autoTitles).length > 0, analysis !== undefined);
+      if (opened) finishSteps(analysis !== undefined);
     } catch (error) {
       if (current === generation) {
         set({ importError: error instanceof Error ? error.message : String(error) });
@@ -332,7 +326,7 @@ export const useProject = create<ProjectState>()((set, get) => {
     },
     confirmSync: () => {
       set({ synced: true });
-      finishSteps(false, false);
+      finishSteps(false);
     },
 
     reset: () => {
@@ -396,11 +390,26 @@ export const useProject = create<ProjectState>()((set, get) => {
         return { ok: false, message: "The reel changed while that was planning. Say it again." };
       // Text the model wrote is shown and exported, so it is redacted like any prompt.
       const ops = reply.ops.map((op) => ("text" in op ? { ...op, text: redact(op.text) } : op));
+      const note = reply.note === null ? null : redact(reply.note);
       const result = applyOps(constraints, ops, steps.length);
       if (result.applied.length === 0)
-        return { ok: false, message: reply.note ?? "Nothing to change for that." };
+        return { ok: false, message: note ?? "Nothing to change for that." };
       commit(result.constraints);
-      return { ok: true, summary: describeOps(result.applied), note: reply.note };
+      return { ok: true, summary: describeOps(result.applied), note };
+    },
+
+    naming: "idle",
+    // Titles arriving for an older import are dropped; titles the user typed still win.
+    nameSteps: async () => {
+      const asked = generation;
+      const { steps, constraints, autoTitles } = get();
+      const request = titlesRequest(steps, constraints, autoTitles);
+      if (!request || get().naming === "pending") return;
+      set({ naming: "pending" });
+      const titles = await requestTitles(request);
+      if (asked !== generation) return;
+      set({ naming: titles ? "idle" : "failed" });
+      if (titles) update({ autoTitles: { ...get().autoTitles, ...titles } });
     },
 
     undo: () => {

@@ -33,17 +33,18 @@ const steps = [
 ];
 
 describe("titlesRequest", () => {
-  const request = titlesRequest(steps, constraints);
+  const request = titlesRequest([...steps, step(5, "Add a guide page")], constraints, {
+    5: "Guide page",
+  });
 
-  it("asks only for untitled, visible prompts, as edited and cut short", () => {
-    expect(request?.steps.map((s) => s.index)).toEqual([1, 4]);
+  it("asks only for steps still named by their first sentence, cut short", () => {
+    expect(request?.steps.map((s) => s.index)).toEqual([1]);
     expect(request?.steps[0]?.prompt).toHaveLength(300);
-    expect(request?.steps[1]?.prompt).toBe("Add captions");
     expect(TitlesRequestSchema.safeParse(request).success).toBe(true);
   });
 
-  it("asks nothing when every step is titled or hidden", () => {
-    expect(titlesRequest(steps.slice(1, 3), constraints)).toBeUndefined();
+  it("asks nothing when every step is titled, edited, hidden or already named", () => {
+    expect(titlesRequest(steps.slice(1), constraints, {})).toBeUndefined();
   });
 });
 

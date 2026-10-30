@@ -22,7 +22,7 @@ Keys in the editor: Space or K plays, the arrows move 5 s, Shift and an arrow ju
 
 - The recording and the logs never leave your browser. Decoding, planning and encoding all run on your machine with WebCodecs.
 - Keys, tokens, emails and passwords are redacted when the log is read, and again on anything typed or written by a model.
-- Only short, redacted text reaches the server: your spoken instruction and step titles for steering, and prompt excerpts for step titles. Hidden prompts are never sent. Nothing is logged server-side.
+- Only short, redacted text reaches the server: your spoken instruction and step titles for steering, and, only when you press Name steps, short prompt excerpts for step titles. Hidden prompts are never sent. Nothing is logged server-side.
 - You can edit or hide any prompt card before you export.
 
 ## How it works

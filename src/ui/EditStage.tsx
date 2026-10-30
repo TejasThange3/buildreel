@@ -5,6 +5,7 @@ import { formatDuration } from "@/lib/plan/autoPlan";
 import { SAMPLE_NAME } from "@/state/sample";
 import { useProject } from "@/state/store";
 import { ExportPanel } from "./ExportPanel";
+import { NameSteps } from "./NameSteps";
 import { Player } from "./Player";
 import { PostDraftPanel } from "./PostDraftPanel";
 import { ProjectSave } from "./ProjectSave";
@@ -101,7 +102,8 @@ export function EditStage() {
         <Section title="Reel length" action={<TargetPicker />} />
         <Section
           title="Steps"
-          hint="One step per prompt. Click one to jump to it; switch it off to cut it."
+          action={<NameSteps />}
+          hint="One step per prompt. Click one to jump to it; switch it off to cut it. Name steps sends short prompt excerpts, never hidden ones, to the AI for shorter titles."
         >
           <StepList />
         </Section>
