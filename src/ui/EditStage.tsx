@@ -54,7 +54,30 @@ function Intro() {
   );
 }
 
+// A saved project whose log no longer matches its recording opens with nothing to show.
+function NoSteps() {
+  const reset = useProject((s) => s.reset);
+  return (
+    <div className="mx-auto flex max-w-md flex-1 flex-col items-start justify-center px-4 py-16">
+      <h1 className="text-xl font-semibold tracking-tight">No steps in this recording</h1>
+      <p className="mt-3 text-sm leading-relaxed text-pretty text-fg-muted">
+        None of the prompts in these logs happen while the recording runs. Check that the log is
+        from the same session as the video.
+      </p>
+      <button
+        type="button"
+        onClick={reset}
+        className="mt-6 h-10 rounded-full bg-fg px-5 text-sm font-medium text-canvas"
+      >
+        Choose different files
+      </button>
+    </div>
+  );
+}
+
 export function EditStage() {
+  const empty = useProject((s) => s.steps.length === 0);
+  if (empty) return <NoSteps />;
   return (
     <div className="mx-auto grid w-full max-w-7xl flex-1 gap-8 px-4 py-6 sm:px-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:py-8">
       <Intro />

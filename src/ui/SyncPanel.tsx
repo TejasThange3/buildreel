@@ -98,6 +98,12 @@ export function SyncPanel() {
               {stepCount} {stepCount === 1 ? "step" : "steps"} in this recording
               {droppedSteps > 0 ? `, ${droppedSteps} outside it` : ""}
             </p>
+            {stepCount === 0 && (
+              <p role="alert" className="mt-3 text-sm leading-relaxed text-pretty text-fg-muted">
+                None of the prompts fall inside this recording yet. Find the frame where prompt 1
+                appears and mark it, or check that the log is from the same session.
+              </p>
+            )}
             <div className="mt-8 flex flex-wrap gap-3">
               <button
                 type="button"
@@ -109,7 +115,8 @@ export function SyncPanel() {
               <button
                 type="button"
                 onClick={confirmSync}
-                className="h-10 rounded-full bg-fg px-5 text-sm font-medium text-canvas active:scale-[0.97]"
+                disabled={stepCount === 0}
+                className="h-10 rounded-full bg-fg px-5 text-sm font-medium text-canvas active:scale-[0.97] disabled:opacity-40"
               >
                 Looks right
               </button>
