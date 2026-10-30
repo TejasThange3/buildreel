@@ -191,6 +191,7 @@ describe("dictated prompts", () => {
     const spoken = spokenAt(step(1, 14, 2, 0.5), -6.5, -0.3);
     const edl = planReel([spoken], busy, constraints({ targetS: 300 }), 100);
     expect(part(edl, "1-hold")).toMatchObject({ outDur: 6.2, voice: [-6.5, -0.3] });
+    expect(edl.quiet).toEqual([[-6.5, -0.3]]);
   });
 
   it("mutes the clip once the card no longer shows the prompt as dictated", () => {

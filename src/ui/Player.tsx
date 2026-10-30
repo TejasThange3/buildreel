@@ -147,6 +147,7 @@ export function Player() {
     const ctx = c?.getContext("2d");
     if (!v || !a || !c || !ctx || !recording) return;
     const fonts = readFonts();
+    const quiet = edl.quiet ?? [];
     let lastSegment = "";
     let last = performance.now();
     let lastSeekId = usePlayback.getState().seekId;
@@ -214,6 +215,10 @@ export function Player() {
         }
         const timelapse = isTimelapse(r);
         pendingSeek = steerVideo(v, r, entered || jumped || pendingSeek, playing, timelapse);
+        // Dictation is heard only under its own card, as in the export (see EDL.quiet).
+        const srcT = r.srcT;
+        if (srcT !== undefined && quiet.some(([from, to]) => srcT >= from && srcT < to))
+          v.muted = true;
         steerVoice(a, r, entered || jumped, playing);
         sound.current?.setClean(useProject.getState().cleanVoice);
         lastSegment = r.segment.id;

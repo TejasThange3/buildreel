@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { FPS, frameCount, outputFrames } from "@/lib/render/frames";
-import { fadeEdges, soundWindows } from "@/lib/render/reelAudio";
+import { audible, fadeEdges, soundWindows } from "@/lib/render/reelAudio";
 import type { EDL, Segment } from "@/shared/types";
 
 // 1 s title card, 1 s prompt hold at 10 s, 2 s timelapse of 10..330 s (160x), 3 s real time at
@@ -75,5 +75,32 @@ describe("fadeEdges", () => {
     expect(channel[2000]).toBe(1);
     expect(channel[3499]).toBe(0);
     expect(channel[3500]).toBe(1);
+  });
+});
+
+describe("audible", () => {
+  it("cuts quiet intervals out of a range", () => {
+    expect(audible([49, 60], [[54, 59]])).toEqual([
+      [49, 54],
+      [59, 60],
+    ]);
+    expect(
+      audible(
+        [10, 20],
+        [
+          [0, 5],
+          [25, 30],
+        ],
+      ),
+    ).toEqual([[10, 20]]);
+    expect(audible([10, 20], [[5, 25]])).toEqual([]);
+  });
+
+  it("keeps the next prompt's dictation out of the review before it", () => {
+    const review: Segment[] = [{ id: "1-real", step: 1, mode: "real", src: [49, 60], outDur: 11 }];
+    expect(soundWindows({ segments: review, totalS: 11, quiet: [[54, 59]] })).toEqual([
+      { src: [49, 54], outStart: 0 },
+      { src: [59, 60], outStart: 10 },
+    ]);
   });
 });

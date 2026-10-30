@@ -1,17 +1,33 @@
 import { AudioSample, type AudioSampleSink } from "mediabunny";
 import type { EDL } from "@/shared/types";
 
-type SoundWindow = { src: [number, number]; outStart: number };
+type Range = [number, number];
+type SoundWindow = { src: Range; outStart: number };
+
+// The parts of a source range outside every quiet interval.
+export function audible(range: Range, quiet: Range[]): Range[] {
+  let parts = [range];
+  for (const [qs, qe] of quiet)
+    parts = parts.flatMap(([a, b]) => {
+      if (qe <= a || qs >= b) return [[a, b]];
+      const kept: Range[] = [];
+      if (qs > a) kept.push([a, qs]);
+      if (qe < b) kept.push([qe, b]);
+      return kept;
+    });
+  return parts;
+}
 
 // Sound comes from two places: real-time segments, with the reviewer's voice and clicks, and
 // prompt cards, which play the prompt as it was dictated. Title cards and fast-forwards are
-// silent, since sped-up audio is noise.
+// silent, since sped-up audio is noise, and real time skips every dictation (see EDL.quiet).
 export function soundWindows(edl: EDL): SoundWindow[] {
   const windows: SoundWindow[] = [];
   let at = 0;
   for (const segment of edl.segments) {
     if (segment.outDur > 0 && segment.mode === "real")
-      windows.push({ src: segment.src, outStart: at });
+      for (const [from, to] of audible(segment.src, edl.quiet ?? []))
+        windows.push({ src: [from, to], outStart: at + (from - segment.src[0]) });
     if (segment.outDur > 0 && segment.mode === "hold" && segment.voice)
       windows.push({ src: segment.voice, outStart: at });
     at += segment.outDur;

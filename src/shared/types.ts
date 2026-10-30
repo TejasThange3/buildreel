@@ -48,7 +48,9 @@ export type Segment = { id: string; step?: number; outDur: number; overlay?: Ove
   | { mode: "fast"; src: [number, number]; speed: number }
 );
 
-export type EDL = { segments: Segment[]; totalS: number };
+// quiet: source intervals where a prompt was dictated. Speech is heard only under its own card,
+// so real-time parts are silent across these, whether or not the card plays its voice.
+export type EDL = { segments: Segment[]; totalS: number; quiet?: [number, number][] };
 
 // The editing intent. Steering changes Constraints and the planner recomputes the EDL from them,
 // so every edit stays within the target and undo is a stack of Constraints.

@@ -189,5 +189,6 @@ export function planReel(
     ...body,
     card("outro", OUTRO_S, "stats", outro),
   ];
-  return { segments, totalS };
+  const quiet = steps.flatMap((s) => (s.dictation ? [s.dictation] : []));
+  return { segments, totalS, quiet };
 }
