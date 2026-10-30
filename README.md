@@ -2,7 +2,7 @@
 
 Buildreel turns a screen recording of a Claude Code session, plus that session's log, into a short captioned "how I built it" reel. You dictate the prompts with Wispr Flow, and you steer the edit by voice too.
 
-**Live:** https://buildreel.vercel.app (no sign-in; the editor opens a sample build on first visit)
+**Live:** https://buildreel.vercel.app (no sign-in; the editor opens a sample build on first visit). New here? Read the [guide](https://buildreel.vercel.app/guide): record, find your two files, line them up, export.
 
 **Sample reel:** [public/sample/reel.mp4](public/sample/reel.mp4). Buildreel cut it from a 17 minute recording of three of its own features being built: the X and LinkedIn post draft, project save and load, and the prompt review panel.
 

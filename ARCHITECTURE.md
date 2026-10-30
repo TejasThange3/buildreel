@@ -364,6 +364,9 @@ buildreel/
   .env.example                   LLM_API_KEY, LLM_BASE_URL, LLM_MODEL, UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
   public/
     sample/project.json          start time, offset, cached titles (autoTitles), constraints
+    sample/analysis.json         probe, activity, keyframe times and dictation of the sample video (13 KB),
+                                 so the editor opens the sample without reading the video; the player
+                                 streams it and export reads it by URL in byte ranges
     sample/session.jsonl         trimmed to the recording window: prompts, tool names, file names and
                                  command descriptions only (no file contents, paths or replies)
     sample/recording.mp4         720p, under ~20 MB; else Vercel Blob
@@ -407,7 +410,8 @@ buildreel/
     lib/audio/findDictation.ts ~60   decodes the audio before each prompt and finds the dictation
     lib/audio/streamCleaner.ts ~40   RNNoise on live blocks for the preview
     lib/keys.ts                ~40   editor shortcuts and step jumps
-    state/sample.ts            ~25   fetches the sample; project.json pins its start time in any timezone
+    state/sample.ts            ~45   fetches the sample's texts and analysis; project.json pins its start time
+    app/guide/page.tsx + ui/guide/Guide.tsx   four-step guide from recording to export
     ui/DropZone.tsx  ui/SyncPanel.tsx  ui/Player.tsx  ui/Timeline.tsx
     ui/StepList.tsx  ui/SteerBox.tsx   ui/ExportPanel.tsx      each ~60-150
     ui/landing/Hero.tsx  ui/landing/HowItWorks.tsx            each ~80
