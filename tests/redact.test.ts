@@ -29,6 +29,11 @@ describe("redact", () => {
     ["query secret", "GET /hook?secret=abc&x=1", "GET /hook?secret=[redacted]&x=1"],
     ["bearer header", "Authorization: Bearer abcdefghijklmnop", "Authorization: Bearer [redacted]"],
     ["basic header", "Authorization: Basic YWRtaW46aHVudGVy", "Authorization: Basic [redacted]"],
+    ["lowercase header", "authorization: bearer abcdefghijkl", "authorization: bearer [redacted]"],
+    ["standalone bearer", "send Bearer eyJhbGci0iJIUzI1 now", "send Bearer [redacted] now"],
+    ["quoted bare token", 'token: "abc"', 'token: "[redacted]"'],
+    ["quoted bare secret", "secret: 'xyz'", "secret: '[redacted]'"],
+    ["object literal token", '{ id: 1, token: "ab" }', '{ id: 1, token: "[redacted]" }'],
     ["curl user", "curl -u admin:hunter2 https://x.io", "curl -u admin:[redacted] https://x.io"],
     [
       "curl long user",
@@ -81,6 +86,9 @@ describe("redact", () => {
   });
 
   it.each([
+    "Basic implementation of the parser",
+    "Bearer tokens are short-lived",
+    'const token = "ab12"',
     "Read D:/Hackathon/Buildreel - WemakeDevs/ARCHITECTURE.md first",
     "the folder D--Hackathon-Buildreel---WemakeDevs holds the logs",
     "C--Users-TEJAS-Projects-WemakeDevs2026-Buildreel",
