@@ -92,7 +92,7 @@ export function EditStage() {
         </Section>
         <Section
           title="Prompt cards"
-          hint="Fix a word or hide a card before you export. The original stays in your log."
+          hint="Fix a word or hide a card before you export. An edited card plays without your voice, so removed words are never heard. The original stays in your log."
         >
           <PromptReview />
         </Section>

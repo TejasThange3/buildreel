@@ -1,3 +1,4 @@
+import { REDACTED } from "@/lib/log/redact";
 import { bestWindow } from "@/lib/timeline/activityWindow";
 import type { ActivityTrack, Constraints, EDL, Segment, Step } from "@/shared/types";
 import { fitToTarget, type Part, type StepPlan } from "./fit";
@@ -53,10 +54,17 @@ function cardText(step: Step, constraints: Constraints): string | undefined {
   return constraints.prompts[step.index] ?? step.prompt;
 }
 
+// The voice under a card is the original speech, so it plays only while the card shows the
+// prompt as dictated: an edit or a redaction in the text would otherwise still be heard.
+function voiceFor(step: Step, constraints: Constraints): [number, number] | undefined {
+  if (step.index in constraints.prompts || step.prompt.includes(REDACTED)) return undefined;
+  return step.dictation;
+}
+
 function draftPlan(step: Step, activity: ActivityTrack, constraints: Constraints): StepPlan {
   return {
     step,
-    hold: holdPart(cardText(step, constraints), step.dictation),
+    hold: holdPart(cardText(step, constraints), voiceFor(step, constraints)),
     fast: fastPart(step, constraints.speed[step.index]),
     real: realPart(step, activity, (constraints.emphasis[step.index] ?? 0) > 0),
   };
@@ -69,13 +77,14 @@ function stepSegments(
 ): Segment[] {
   const segments: Segment[] = [];
   const text = cardText(step, constraints);
+  const voice = voiceFor(step, constraints);
   if (text !== undefined && hold.dur > 0) {
     segments.push({
       id: `${step.index}-hold`,
       step: step.index,
       mode: "hold",
       srcT: step.promptT,
-      ...(step.dictation && { voice: step.dictation }),
+      ...(voice && { voice }),
       outDur: hold.dur,
       overlay: { kind: "prompt", text },
     });

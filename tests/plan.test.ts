@@ -193,6 +193,17 @@ describe("dictated prompts", () => {
     expect(part(edl, "1-hold")).toMatchObject({ outDur: 6.2, voice: [-6.5, -0.3] });
   });
 
+  it("mutes the clip once the card no longer shows the prompt as dictated", () => {
+    const spoken = spokenAt(step(1, 14, 2, 0.5), -6.5, -0.3);
+    const edited = planReel([spoken], busy, constraints({ prompts: { 1: "Add captions" } }), 100);
+    expect(part(edited, "1-hold")).toMatchObject({ outDur: 2 });
+    expect(part(edited, "1-hold")).not.toHaveProperty("voice");
+    const secret = { ...spoken, prompt: "use key [redacted] for the deploy" };
+    expect(part(planReel([secret], busy, constraints(), 100), "1-hold")).not.toHaveProperty(
+      "voice",
+    );
+  });
+
   it("never shortens a card below its clip to fit the length", () => {
     const spoken = steps.map((s) => spokenAt(s, s.promptT - 4.5, s.promptT));
     const edl = planReel(spoken, busy, constraints({ targetS: 30 }), 1200);
