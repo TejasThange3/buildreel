@@ -13,11 +13,14 @@ import { sortFiles } from "@/lib/files";
 import { useProject } from "@/state/store";
 
 // The editor only renders in the browser, so the platform is known on first render.
+const WINDOWS = /Windows/.test(navigator.userAgent);
 const MAC = /Mac|iPhone|iPad/.test(navigator.userAgent);
-const LOG_PATH = MAC ? "~/.claude/projects" : "%USERPROFILE%\\.claude\\projects";
-const LOG_HOW = MAC
-  ? "In the file window press Cmd Shift G, paste it and press Return."
-  : "In the file window paste it into the address bar and press Enter.";
+const LOG_PATH = WINDOWS ? "%USERPROFILE%\\.claude\\projects" : "~/.claude/projects";
+const LOG_HOW = WINDOWS
+  ? "In the file window paste it into the address bar and press Enter."
+  : MAC
+    ? "In the file window press Cmd Shift G, paste it and press Return."
+    : "In the file window press Ctrl L, paste it and press Enter.";
 
 type SlotProps = {
   step: number;
@@ -187,7 +190,8 @@ export function DropZone() {
           Claude Code keeps every session as a .jsonl file in this folder:
           <CopyPath />
           <span className="mt-2 block">
-            {LOG_HOW} Open the folder named after your project and pick the newest file.
+            {LOG_HOW} Open the folder named after your project and pick the newest file. If you set
+            CLAUDE_CONFIG_DIR, the projects folder is inside that directory instead.
           </span>
         </Slot>
       </div>

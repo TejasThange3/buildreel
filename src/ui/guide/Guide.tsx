@@ -34,8 +34,9 @@ const STEPS: Step[] = [
       <>
         The log is a .jsonl file. On Windows open <Path>%USERPROFILE%\.claude\projects</Path> (paste
         it into the address bar of the file window); on a Mac press Cmd Shift G and open{" "}
-        <Path>~/.claude/projects</Path>. Go into the folder named after your project and pick the
-        newest file. If the session spans several files, add them all.
+        <Path>~/.claude/projects</Path> (on Linux, Ctrl L in the file window). Go into the folder
+        named after your project and pick the newest file. If the session spans several files, add
+        them all. If you set CLAUDE_CONFIG_DIR, the projects folder is inside that directory.
       </>,
       'Open the editor, press "Use your own files", add the recording, then the log, and press "Make my reel".',
     ],
