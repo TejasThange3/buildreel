@@ -1,6 +1,12 @@
 "use client";
 
-import { CheckIcon, CopySimpleIcon, FileTextIcon, FilmSlateIcon } from "@phosphor-icons/react";
+import {
+  CheckIcon,
+  CopySimpleIcon,
+  FileTextIcon,
+  FilmSlateIcon,
+  XIcon,
+} from "@phosphor-icons/react";
 import Link from "next/link";
 import { useState, type DragEvent, type ReactNode } from "react";
 import { sortFiles } from "@/lib/files";
@@ -22,10 +28,12 @@ type SlotProps = {
   accept: string;
   multiple?: boolean;
   onPick: (files: File[]) => void;
+  onRemove: (name: string) => void;
   children: ReactNode;
 };
 
-function Slot({ step, title, pick, icon, chosen, accept, multiple, onPick, children }: SlotProps) {
+function Slot(props: SlotProps) {
+  const { step, title, pick, icon, chosen, accept, multiple, onPick, onRemove, children } = props;
   const done = chosen.length > 0;
   return (
     <div
@@ -45,12 +53,22 @@ function Slot({ step, title, pick, icon, chosen, accept, multiple, onPick, child
       {done && (
         <ul className="mt-3 space-y-1 font-mono text-xs break-all text-fg">
           {chosen.map((name) => (
-            <li key={name}>{name}</li>
+            <li key={name} className="flex items-start gap-2">
+              <span className="min-w-0 flex-1">{name}</span>
+              <button
+                type="button"
+                onClick={() => onRemove(name)}
+                aria-label={`Remove ${name}`}
+                className="shrink-0 text-fg-subtle transition-colors hover:text-fg"
+              >
+                <XIcon aria-hidden className="size-3.5" />
+              </button>
+            </li>
           ))}
         </ul>
       )}
       <label className="mt-4 inline-flex h-9 cursor-pointer items-center self-start rounded-full border border-line-strong px-4 text-sm font-medium transition-colors hover:bg-white/5 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-fg">
-        {done ? "Change" : "Choose"}
+        {done ? (multiple ? "Add another" : "Change") : "Choose"}
         <input
           type="file"
           accept={accept}
@@ -151,6 +169,7 @@ export function DropZone() {
           chosen={video ? [video.name] : []}
           accept="video/*,.mkv"
           onPick={add}
+          onRemove={() => setVideo(undefined)}
         >
           The OBS file of your session. OBS saves to your Videos folder unless you changed it.
         </Slot>
@@ -163,6 +182,7 @@ export function DropZone() {
           accept=".jsonl"
           multiple
           onPick={add}
+          onRemove={(name) => setLogs((current) => current.filter((f) => f.name !== name))}
         >
           Claude Code keeps every session as a .jsonl file in this folder:
           <CopyPath />
@@ -183,6 +203,15 @@ export function DropZone() {
           ? `Saved project: ${project.name}`
           : "Optional: add a saved project to pick up where you left off"}
       </label>
+      {project && (
+        <button
+          type="button"
+          onClick={() => setProject(undefined)}
+          className="mt-1 self-start text-xs text-fg-subtle underline underline-offset-4 transition-colors hover:text-fg"
+        >
+          Remove the saved project
+        </button>
+      )}
 
       <div className="mt-8 flex flex-wrap items-center gap-4">
         <button
