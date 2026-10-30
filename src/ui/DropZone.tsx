@@ -22,6 +22,13 @@ const LOG_HOW = WINDOWS
     ? "In the file window press Cmd Shift G, paste it and press Return."
     : "In the file window press Ctrl L, paste it and press Enter.";
 
+// The input is emptied once its files are taken, so a file removed by mistake can be picked again.
+function takeFiles(input: HTMLInputElement): File[] {
+  const files = [...(input.files ?? [])];
+  input.value = "";
+  return files;
+}
+
 type SlotProps = {
   step: number;
   title: string;
@@ -78,7 +85,7 @@ function Slot(props: SlotProps) {
           multiple={multiple}
           aria-label={pick}
           className="sr-only"
-          onChange={(event) => onPick([...(event.target.files ?? [])])}
+          onChange={(event) => onPick(takeFiles(event.target))}
         />
       </label>
     </div>
@@ -201,7 +208,7 @@ export function DropZone() {
           type="file"
           accept=".json"
           className="sr-only"
-          onChange={(event) => add([...(event.target.files ?? [])])}
+          onChange={(event) => add(takeFiles(event.target))}
         />
         {project
           ? `Saved project: ${project.name}`
