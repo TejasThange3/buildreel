@@ -19,10 +19,10 @@ function promptExcerpt(step: Step, constraints: Constraints): string {
   return (constraints.prompts[step.index] ?? step.prompt).slice(0, 120);
 }
 
+// Step titles already follow hidden and edited prompts; a typed title is redacted here.
 function stepTitle(step: Step, constraints: Constraints): string {
   const own = constraints.titles[step.index];
-  if (own !== undefined) return redact(own);
-  return constraints.hiddenPrompts.includes(step.index) ? `Step ${step.index}` : step.title;
+  return own !== undefined ? redact(own) : step.title;
 }
 
 export function steerRequest(

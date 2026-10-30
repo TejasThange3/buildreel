@@ -9,7 +9,7 @@ import { planReel } from "@/lib/plan/autoPlan";
 import { alignEvents, offsetFor, syncPrompt } from "@/lib/timeline/align";
 import { findDictation } from "@/lib/audio/findDictation";
 import { sortFiles } from "@/lib/files";
-import { buildSteps } from "@/lib/timeline/steps";
+import { buildSteps, shownTitle } from "@/lib/timeline/steps";
 import { openProject, PROMPT_MAX } from "@/shared/project";
 import type {
   ActivityTrack,
@@ -103,7 +103,7 @@ function derive({ recording, log, offsetS, constraints, autoTitles, dictation }:
   const built = buildSteps(events, probe.durationS, activity);
   const steps = built.steps.map((s) => ({
     ...s,
-    title: autoTitles[s.index] ?? s.title,
+    title: shownTitle(s, constraints, autoTitles),
     dictation: dictation[s.index],
   }));
   return {

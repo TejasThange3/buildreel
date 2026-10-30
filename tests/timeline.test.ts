@@ -2,8 +2,8 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { parseClaudeLogs } from "@/lib/log/parseClaudeLog";
 import { alignEvents, offsetFor, syncPrompt } from "@/lib/timeline/align";
-import { buildSteps } from "@/lib/timeline/steps";
-import type { AlignedEvent } from "@/shared/types";
+import { buildSteps, shownTitle } from "@/lib/timeline/steps";
+import type { AlignedEvent, Constraints, Step } from "@/shared/types";
 
 // Real session fixture against the two real OBS recordings it overlaps. Starts are the
 // filename times (14-54-50 and 15-28-26 IST) in UTC; durations come from ffprobe.
@@ -242,5 +242,40 @@ describe("sync calibration", () => {
     const offset = offsetFor(prompt, startedAt, 30);
     expect(offset).toBe(10);
     expect(alignEvents([prompt], startedAt, offset)[0]?.t).toBe(30);
+  });
+});
+
+describe("shownTitle", () => {
+  const step: Step = {
+    index: 2,
+    prompt: "Move the Acme contract notes into the deck. Then tidy up.",
+    title: "Move the Acme contract notes into the deck.",
+    promptT: 0,
+    workEnd: 60,
+    reviewEnd: 90,
+    tools: [],
+    reviewActivity: 0.5,
+  };
+  const base: Constraints = {
+    targetS: 90,
+    pinned: [],
+    dropped: [],
+    emphasis: {},
+    speed: {},
+    titles: {},
+    prompts: {},
+    hiddenPrompts: [],
+  };
+  const model = { 2: "Acme contract notes" };
+
+  it("prefers the model's title, else the first sentence", () => {
+    expect(shownTitle(step, base, model)).toBe("Acme contract notes");
+    expect(shownTitle(step, base, {})).toBe("Move the Acme contract notes into the deck.");
+  });
+
+  it("never names a hidden or edited prompt with its original wording", () => {
+    expect(shownTitle(step, { ...base, hiddenPrompts: [2] }, model)).toBe("Step 2");
+    const edited = { ...base, prompts: { 2: "Move the notes into the deck. Then tidy up." } };
+    expect(shownTitle(step, edited, model)).toBe("Move the notes into the deck.");
   });
 });

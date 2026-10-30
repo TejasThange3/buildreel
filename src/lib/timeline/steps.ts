@@ -1,4 +1,4 @@
-import type { ActivityTrack, AlignedEvent, Step } from "@/shared/types";
+import type { ActivityTrack, AlignedEvent, Constraints, Step } from "@/shared/types";
 import { meanActivity } from "./activityWindow";
 
 type Draft = {
@@ -70,4 +70,17 @@ export function buildSteps(
     });
   });
   return { steps, droppedSteps };
+}
+
+// A title never says more than its card: a hidden prompt is "Step N" and an edited one is named
+// from the edit, so wording taken out in review cannot come back as a title, caption or post.
+// Otherwise the model's title, if any, else the first sentence.
+export function shownTitle(
+  step: Step,
+  constraints: Constraints,
+  autoTitles: Record<number, string>,
+): string {
+  if (constraints.hiddenPrompts.includes(step.index)) return `Step ${step.index}`;
+  const edited = constraints.prompts[step.index];
+  return edited !== undefined ? titleOf(edited) : (autoTitles[step.index] ?? step.title);
 }
