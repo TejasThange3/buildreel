@@ -27,19 +27,25 @@ const PASSWORD_FIELD = new RegExp(
   `\\b([A-Za-z0-9_-]*(?:passw(?:or)?d|pwd)${ASSIGN})[^\\s"',;]+`,
   "gi",
 );
+// Quoted values allow escaped quotes, so "abc\"def" goes whole.
+const QUOTED = `"(?:\\\\.|[^"\\\\\\n])*"|'(?:\\\\.|[^'\\\\\\n])*'`;
 // A bare token or secret set with no spaces, as on a command line or in a query string
-// ("token=abc", "?secret=xyz"); code with spaces ("const token = id") is left alone.
-const BARE_ASSIGNMENT = /\b((?:token|secret)=)[^\s"',;&]+/gi;
+// ("token=abc", 'token="abc"', "?secret=xyz"); code with spaces ("const token = id") and
+// comparisons ("token==expected") are left alone.
+const BARE_ASSIGNMENT = new RegExp(`\\b((?:token|secret)=)(?!=)(?:${QUOTED}|[^\\s"',;&]+)`, "gi");
 // A bare token or secret given a quoted value where config puts keys: at the start of a line
 // (YAML) or after "{" or "," (an object literal). Prose like 'The secret: "keep going"' survives.
-const BARE_QUOTED =
-  /(^[ \t]*|[{,][ \t]*)((?:token|secret)[ \t]*:[ \t]*)(["'])(?:(?!\3)[^\n])+\3/gim;
-// HTTP auth: anything after an Authorization header in any case, and a standalone Bearer token
-// with a digit in it, so prose like "Basic implementation" or "Bearer tokens expire" survives.
-const AUTH_HEADER = /\b(authorization:?\s*(?:bearer|basic)\s+)\S+/gi;
-const BEARER = /\b(Bearer\s+)(?=[A-Za-z0-9._~+/=-]*\d)[A-Za-z0-9._~+/=-]{12,}/g;
-// curl's user:password argument.
-const CURL_USER = /((?:^|\s)(?:-u|--user)[ =]+[^\s:]+:)\S+/g;
+const BARE_QUOTED = new RegExp(
+  `(^[ \\t]*|[{,][ \\t]*)((?:token|secret)[ \\t]*:[ \\t]*)(?:${QUOTED})`,
+  "gim",
+);
+// HTTP auth: the value of an Authorization header (with its colon, in any case), and any long
+// Bearer credential; prose like "authorization basic checks" or "Bearer tokens expire" survives.
+const AUTH_HEADER = /\b(authorization:\s*(?:bearer|basic)\s+)\S+/gi;
+const BEARER = /\b(bearer\s+)[A-Za-z0-9._~+/=-]{16,}/gi;
+// curl's user:password argument, quoted or not. The option and its separator are matched before
+// the argument, with no overlapping repetition, so long runs of "=" stay linear.
+const CURL_USER = new RegExp(`((?:^|\\s)(?:-u|--user)(?:=|[ \\t]+))(?:${QUOTED}|\\S+)`, "g");
 // Userinfo lives before the host only; "?" and "#" end the authority.
 const URL_CREDENTIALS = /\b([a-z][a-z0-9+.-]*:\/\/)[^\s/?#:@]+:[^\s/?#@]+@/gi;
 const KEY_SHAPES = [
@@ -91,7 +97,10 @@ export function redact(text: string): string {
     .replace(SECRET_FIELD, `$1${REDACTED}`)
     .replace(PASSWORD_FIELD, `$1${REDACTED}`)
     .replace(BARE_ASSIGNMENT, `$1${REDACTED}`)
-    .replace(BARE_QUOTED, `$1$2$3${REDACTED}$3`)
+    .replace(BARE_QUOTED, (match, lead: string, name: string) => {
+      const quote = match.charAt(lead.length + name.length);
+      return `${lead}${name}${quote}${REDACTED}${quote}`;
+    })
     .replace(AUTH_HEADER, `$1${REDACTED}`)
     .replace(BEARER, `$1${REDACTED}`)
     .replace(CURL_USER, `$1${REDACTED}`)
