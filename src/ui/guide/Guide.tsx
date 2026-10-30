@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Logo } from "@/ui/Logo";
-import { MetalLink } from "@/ui/landing/MetalLink";
+import { GlassLink } from "@/ui/landing/GlassLink";
 
 type Step = { title: string; lead: string; points: ReactNode[] };
 
@@ -70,9 +70,10 @@ export function Guide() {
         <Link href="/">
           <Logo />
         </Link>
-        <MetalLink href="/editor" size="sm">
+        {/* Plain links: a reading page has no use for the landing page's shader buttons. */}
+        <GlassLink href="/editor" size="sm">
           Open the editor
-        </MetalLink>
+        </GlassLink>
       </nav>
       <main className="mx-auto w-full max-w-4xl px-4 pt-10 pb-24 sm:px-6 sm:pt-16">
         <p className="font-mono text-xs tracking-wider text-fg-subtle uppercase">Guide</p>
@@ -110,7 +111,12 @@ export function Guide() {
           ))}
         </ol>
         <div className="mt-16 flex flex-wrap items-center gap-4 border-t border-line pt-10">
-          <MetalLink href="/editor">Try the sample build</MetalLink>
+          <Link
+            href="/editor"
+            className="inline-flex h-12 items-center rounded-full bg-fg px-6 text-sm font-medium text-canvas transition-transform active:scale-[0.97]"
+          >
+            Try the sample build
+          </Link>
           <p className="text-sm text-fg-muted">
             It opens in a second and plays a real 17 minute session.
           </p>
