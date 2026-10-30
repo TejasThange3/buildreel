@@ -23,6 +23,7 @@ import { useShortcuts } from "./useShortcuts";
 const DRIFT_S = 0.25;
 const KEYFRAME_WIDTH = 1280;
 const MAX_WAIT_MS = 4000;
+const QUIET_MARGIN_S = 0.3;
 
 // play() rejects with AbortError when a cut pauses or seeks the video before it starts; that is
 // expected at every segment boundary. Anything else is a real failure.
@@ -223,10 +224,12 @@ export function Player() {
         }
         const timelapse = isTimelapse(r);
         pendingSeek = steerVideo(v, r, entered || jumped || pendingSeek, playing, timelapse);
-        // Dictation is heard only under its own card, as in the export (see EDL.quiet).
-        const srcT = r.srcT;
-        if (srcT !== undefined && quiet.some(([from, to]) => srcT >= from && srcT < to))
-          v.muted = true;
+        // Dictation is heard only under its own card, as in the export (see EDL.quiet). The video
+        // can run a little ahead of the reel clock, so its own position counts too, with a margin
+        // for the frame or two before the next check.
+        const nearQuiet = (t: number) =>
+          quiet.some(([from, to]) => t >= from - QUIET_MARGIN_S && t < to + QUIET_MARGIN_S);
+        if ((r.srcT !== undefined && nearQuiet(r.srcT)) || nearQuiet(v.currentTime)) v.muted = true;
         steerVoice(a, r, entered || jumped, playing);
         sound.current?.setClean(useProject.getState().cleanVoice);
         lastSegment = r.segment.id;
