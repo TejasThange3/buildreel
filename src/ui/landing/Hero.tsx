@@ -28,6 +28,12 @@ export function Hero() {
       <nav className="relative mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-4 sm:px-6">
         <Logo />
         <div className="flex items-center gap-2">
+          {/* No room on a phone; the footer and the editor link the guide there. */}
+          <span className="max-sm:hidden">
+            <GlassLink href="/guide" size="sm">
+              Guide
+            </GlassLink>
+          </span>
           <GlassLink href={REPO_URL} size="sm">
             <GithubLogoIcon aria-hidden weight="fill" className="size-4" />
             <span className="max-sm:sr-only">GitHub</span>

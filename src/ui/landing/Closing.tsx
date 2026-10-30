@@ -8,6 +8,7 @@ import { SectionHeader } from "./SectionHeader";
 
 const LINKS = [
   { label: "Editor", href: "/editor" },
+  { label: "Guide", href: "/guide" },
   { label: "How it works", href: "#how" },
   { label: "Source on GitHub", href: REPO_URL },
 ];

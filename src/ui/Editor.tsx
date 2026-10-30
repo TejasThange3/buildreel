@@ -48,15 +48,20 @@ export default function Editor() {
           <Logo />
         </Link>
         <StagePath current={!hasProject ? 0 : !synced ? 1 : 2} />
-        {hasProject && (
-          <button
-            type="button"
-            onClick={reset}
-            className="h-9 rounded-full border border-line-strong px-4 text-sm font-medium transition-colors hover:bg-white/5"
-          >
-            Use your own files
-          </button>
-        )}
+        <div className="flex items-center gap-4">
+          <Link href="/guide" className="text-sm text-fg-muted transition-colors hover:text-fg">
+            Guide
+          </Link>
+          {hasProject && (
+            <button
+              type="button"
+              onClick={reset}
+              className="h-9 rounded-full border border-line-strong px-4 text-sm font-medium transition-colors hover:bg-white/5"
+            >
+              Use your own files
+            </button>
+          )}
+        </div>
       </header>
       <main className="flex flex-1 flex-col">
         {openingSample && !hasProject ? (
