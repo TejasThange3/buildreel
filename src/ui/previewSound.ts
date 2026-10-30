@@ -18,7 +18,10 @@ const BLOCK = 1024;
 // loads, and while cleaning is off, sound passes through unchanged.
 export function connectPreviewSound(elements: HTMLMediaElement[]): PreviewSound {
   const context = new AudioContext({ sampleRate: DENOISE_RATE });
-  const node = context.createScriptProcessor(BLOCK, 1, 1);
+  // Two channels in and out: cleaning mixes them to one voice like the export does, and with
+  // cleaning off a stereo recording plays as stereo.
+  const node = context.createScriptProcessor(BLOCK, 2, 2);
+  const mono = new Float32Array(BLOCK);
   for (const element of elements) context.createMediaElementSource(element).connect(node);
   node.connect(context.destination);
 
@@ -34,10 +37,16 @@ export function connectPreviewSound(elements: HTMLMediaElement[]): PreviewSound 
   }, reportError);
 
   node.onaudioprocess = ({ inputBuffer, outputBuffer }) => {
-    const input = inputBuffer.getChannelData(0);
-    const output = outputBuffer.getChannelData(0);
-    if (clean && cleaner) cleaner(input, output);
-    else output.set(input);
+    const [left, right] = [inputBuffer.getChannelData(0), inputBuffer.getChannelData(1)];
+    const [outLeft, outRight] = [outputBuffer.getChannelData(0), outputBuffer.getChannelData(1)];
+    if (!clean || !cleaner) {
+      outLeft.set(left);
+      outRight.set(right);
+      return;
+    }
+    for (let i = 0; i < mono.length; i++) mono[i] = ((left[i] ?? 0) + (right[i] ?? 0)) / 2;
+    cleaner(mono, outLeft);
+    outRight.set(outLeft);
   };
 
   return {
