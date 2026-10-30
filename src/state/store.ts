@@ -172,6 +172,14 @@ const streamUrl = (source: VideoSource) =>
 
 // A project that goes away takes its object URL and its playhead with it, so the next one starts
 // paused at the beginning.
+// A title set earlier, by hand or by steering, may repeat a prompt's wording; editing or hiding
+// the prompt drops it, so the step falls back to a title made from what the card now shows.
+function withoutTitle(titles: Record<number, string>, index: number): Record<number, string> {
+  const rest = { ...titles };
+  delete rest[index];
+  return rest;
+}
+
 const release = (recording: Recording | undefined) => {
   if (recording?.source instanceof File) URL.revokeObjectURL(recording.url);
   const { seek, setPlaying } = usePlayback.getState();
@@ -378,14 +386,19 @@ export const useProject = create<ProjectState>()((set, get) => {
       delete prompts[index];
       const original = steps.find((s) => s.index === index)?.prompt;
       if (clean && clean !== original) prompts[index] = clean;
-      commit({ ...constraints, prompts });
+      if (prompts[index] === constraints.prompts[index]) return;
+      commit({ ...constraints, prompts, titles: withoutTitle(constraints.titles, index) });
     },
 
     togglePrompt: (index) => {
       const { constraints } = get();
       const hidden = constraints.hiddenPrompts;
-      const next = hidden.includes(index) ? hidden.filter((i) => i !== index) : [...hidden, index];
-      commit({ ...constraints, hiddenPrompts: next });
+      const hiding = !hidden.includes(index);
+      commit({
+        ...constraints,
+        hiddenPrompts: hiding ? [...hidden, index] : hidden.filter((i) => i !== index),
+        titles: hiding ? withoutTitle(constraints.titles, index) : constraints.titles,
+      });
     },
 
     steer: async (instruction) => {
